@@ -1,0 +1,101 @@
+---
+title: "Metalonda"
+author: "QD"
+output: html_document
+---
+
+##Throw out all patients which have less than 3 samples available. These are L015,L026,L027,L037,R001 & R005. This would amount to deleting a total of 2+2+1+1+2+1=9 samples. So should end up with 87 samples.
+```{r}
+genus_25 <- core(genus_005_samples,detection=0, prevalence = 25/100)
+unique(metadata_epi$Residentnumber)
+genus_25_at_least_3_samples<-subset_samples(genus_25,!(Residentnumber %in% c("L015","L026","R001")))
+```
+##Prepare all input for metalonda algorithm
+```{r}
+metadata_at_least_3<-meta(genus_25_at_least_3_samples)
+metadata_at_least_3$Time_point<-as.numeric(as.character(metadata_at_least_3$Time_point))
+metadata_at_least_3$Ever_Colonized<-as.factor(metadata_at_least_3$Ever_Colonized)
+metadata_at_least_3$Residentnumber<-as.factor(metadata_at_least_3$Residentnumber)
+metadata_at_least_3$Residentnumber<-droplevels(metadata_at_least_3$Residentnumber)
+table(metadata_at_least_3$Ever_Colonized,metadata_at_least_3$Sample_type)
+time.vec <-metadata_at_least_3$Time_point
+group.vec <-metadata_at_least_3$Ever_Colonized
+id.vec <-metadata_at_least_3$Residentnumber
+##Prepare OTU table
+taxonomy<-genus_25_at_least_3_samples@tax_table@.Data
+filt_genera<-abundances(genus_25_at_least_3_samples)
+rownames(filt_genera)<-taxonomy[,6]
+filt_genera<-as.matrix(filt_genera)
+OTU_table <-filt_genera
+rownames(OTU_table)<-as.character(rownames(OTU_table))
+points=c(1,2,3,4,length.out=4)
+```
+##Metalonda execution
+```{r}
+setwd("Metalonda_Output_Genus")
+output.all = metalondaAll(Count = OTU_table, Time = time.vec, Group = group.vec,ID = id.vec, n.perm =1000, fit.method = "nbinomial", num.intervals = 3,parall = FALSE, pvalue.threshold=0.05,adjust.method = "BH", time.unit = "Time_point",norm.method = "median_ratio", prefix = "Test", ylabel = "Read Counts", col = c("black","green"))
+```
+##Visualize in a proper way
+```{r}
+ever_colonized_results<-read.csv("Test_MetaLonDA_Timeintervals.csv",header=TRUE, sep=",", as.is=TRUE)
+ever_colonized_results$dominant<-as.factor(ever_colonized_results$dominant)
+ever_colonized_results$start<-as.character(ever_colonized_results$start)
+ever_colonized_results$end<-as.character(ever_colonized_results$end)
+ever_colonized_results$feature<-gsub("g__","",ever_colonized_results$feature)
+ever_colonized_results<-plyr::rename(ever_colonized_results,c("dominant"="Dominant"))
+## perhaps can use this code later on if there is more clarity on what to include metalonda_symptom_groups$feature<-fct_relevel(metalonda_symptom_groups$feature,"Lachnospiraceae_ND3007_group","Escherichia-Shigella","Bilophila","Barnesiella","Allisonella")
+ever_colonized_results$Dominant<-plyr::revalue(ever_colonized_results$Dominant,c("Ever"="Ever Colonised","Never"="Never Colonised"))
+ever_colonized_results$feature<-plyr::revalue(ever_colonized_results$feature,c(".2"="Atopobiaceae"))
+ever_colonized_results$feature<-as.factor(ever_colonized_results$feature)
+ever_colonized_results$feature<-fct_rev(ever_colonized_results$feature)
+ever_colonized_results$Dominant<-fct_rev(ever_colonized_results$Dominant)
+
+Metalonda_Results<-ggplot(ever_colonized_results)+
+  aes(ymin=start,ymax=end,x=feature,xend=feature)+
+  geom_linerange(aes(color=Dominant),size=1.2)+
+  coord_flip()+
+  scale_color_manual(values=c("orange", "blue"))+
+  theme(legend.position = "top",legend.text=element_text(size=12),legend.title=element_text(size=12))+
+  theme(axis.text.y=element_text(face="italic",size=11))+
+  theme(axis.text.x=element_text(size=11))+
+  theme(axis.title.x=element_text(size=12))+
+  theme(axis.title.y=element_text(size=12))+
+  labs(color="")+
+  xlab("Genus")+
+  ylab("Time point")
+
+ggsave(file="Fig5_Metalonda_Results.svg", plot=Metalonda_Results, width=12, height=8,dpi=1600)
+```
+## Select all genera which were significantly abundant from Metalonda and visualize their longitudinal trajectories
+```{r}
+##Make sure to get the names from the feature column when g__ is still included, as this is how they are written in the phylo
+genus_25_at_least_3_samples_rel<-microbiome::transform(genus_25_at_least_3_samples,"compositional")
+long_at_least_3_samples<-psmelt(genus_25_at_least_3_samples_rel)
+significant_genera_longitudinal<-subset(long_at_least_3_samples,Genus %in% c("g__Escherichia-Shigella","g__Blautia","g__[Clostridium]_innocuum_group","g__.2","g__Ruminiclostridium_9","g__Dorea","g__Negativibacillus","g__Sellimonas","g__[Eubacterium]_xylanophilum_group","g__[Eubacterium]_brachy_group","g__Bacteroides","g__Eubacterium","g__DTU089","g__Lachnospiraceae_ND3007_group")|Family=="f__Atopobiaceae")
+unique(significant_genera_longitudinal$Genus) ## Olsenella was the only other Atopobiaceae present next to the differentially abundant nonclassified genus, so take out Olsenella
+significant_genera_longitudinal<-subset(significant_genera_longitudinal,Genus!="g__Olsenella")
+significant_genera_longitudinal<-droplevels(significant_genera_longitudinal)
+##Check which number is the unclassified genus which was differentially abundant
+levels(significant_genera_longitudinal$Genus)
+levels(significant_genera_longitudinal$Genus)[1]<-"f__Atopobiaceae"
+significant_genera_longitudinal$Genus<-gsub("g__","",significant_genera_longitudinal$Genus)
+significant_genera_longitudinal$Genus<-gsub("f__","",significant_genera_longitudinal$Genus)
+
+##g__.2 is still missing from this plot. This is from f__Atopobiaceae/OTU nr 322282298 and unclassified at genus level. So also include this one separately
+significant_genera_longitudinal_plot<-ggplot(significant_genera_longitudinal)+
+  aes(x=Time_point,y=Abundance,group=Ever_Colonized,color=Ever_Colonized)+
+  geom_point()+
+  scale_color_manual(values=c("orange", "blue"))+
+  theme(axis.text.x=element_text(size=8))+
+  theme(legend.title=element_text(size=10))+
+  theme(plot.title = element_text(face = "italic"))+
+  theme(strip.text = element_text(face = "italic"))+
+  ylab("Relative abundance")+
+  xlab("Time point")+
+  facet_wrap(~Genus,scales="free_y")+
+  labs(color="Ever Colonised")+
+  labs(group="Ever Colonised")
+
+ggsave(file="FigS6_significant_genera_longitudinal_plot.svg", plot=significant_genera_longitudinal_plot, width=12, height=8,dpi=1600)
+                                  
+```
