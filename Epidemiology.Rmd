@@ -1,0 +1,274 @@
+---
+title: "Epidemiology"
+author: "QD"
+output: html_document
+---
+##Check how many ESBL MDROs are there
+```{r}
+xtabs(~ESBL, data=metadata_epi)
+xtabs(~MDRO_Type_Sample_Based, data=metadata_epi) ##So we have 27 MDROs in total, 13 non-ESBL MDROs and 14 ESBL-MDROs. Of ESBL-positives, 10 are E.coli, 3 are E. cloacae and 1 is a non-koseri Citrobacter. All non-ESBL MDROs are E-coli. When calculating the percentages we come to the following
+MDRO_percentage<-(27/93)*100
+ESBL_positives_percentage_total<-(14/93)*100
+ESBL_positives_percentage_MDROs<-(14/27)*100
+unique_residents<-length(unique(metadata_epi$Residentnumber))
+xtabs(~C_difficile_at_present, data=metadata_epi) ## No C. difficile was seen in any patient
+xtabs(~Ever_Colonized+Residentnumber,data=metadata_epi) ## 12 residents were positive on at least 1 time point, so 15 were never colonized
+MDRO_percentage_Ever_Colonized<-(12/27)*100
+xtabs(~MDRO_cultured+Sex,data=metadata_epi)
+xtabs(~Proton_pump_inhibitor_at_present,data=metadata_epi)
+percentage_PPI<-(63/92)*100 ##As from 1 sample PPI use was unknown
+xtabs(~Antibiotic_use_at_present,data=metadata_epi)
+percentage_present_AB_use<-(4/93)*100
+xtabs(~Antibiotic_use_in_past_2_months,data=metadata_epi)
+percentage_past_2_months_AB_use<-(16/93)*100
+xtabs(~Incontinence_urinary_OR_faecal,data=metadata_epi)
+percentage_incontinence_at_present<-(68/93)*100
+xtabs(~Ever_Colonized,data=metadata_epi)
+count_feces<-as.data.frame(xtabs(~Sample_type+Residentnumber,data=metadata_epi)) ##Liz indicated it would be good to include how many residents have 2, 3 or 4 feces samples
+table(count_feces$Freq) ## 3 residents 2 samples, 9 residents 3 samples and 15 residents 4 samples
+xtabs(~ESBL+Residentnumber,data=metadata_epi) ## 6 different residents
+percentage_residents_with_ESBL<-(6/27)*100
+xtabs(~MDRO_cultured+Residentnumber+Time_point,data=metadata_epi)
+##Liz also noted that we should write the percentage of E. colis of our MDRO
+percentage_E_coli_MDRO<-(22/27)*100
+## Now check which residents were positive at all timepoints of which they had samples
+metadata_epi$MDRO_cultured<-as.factor(metadata_epi$MDRO_cultured)
+ggplot(metadata_epi)+
+  aes(x=Time_point,y=Residentnumber,fill=MDRO_cultured,color=MDRO_cultured)+
+  geom_point(size=3) ##So only R003 and R004 are positive at all time points. 
+MDRO_always_positve<-(2/27)*100
+##also include percentages of colonized residents, which residents were colonized on 1 time point, which ones at multiple time points
+percentage_colonized_once<-(4/12)*100
+percentage_colonized_more_than_once<-(8/12)*100
+xtabs(~Ever_Colonized+Residentnumber,data=metadata_epi)
+xtabs(~MDRO_cultured+Time_point,data=metadata_epi)
+prevalence_timepoint1<-(4/19)*100
+prevalence_timepoint2<-(10/25)*100
+prevalence_timepoint3<-(7/24)*100
+prevalence_timepoint4<-(6/25)*100
+metadata_epi$Time_point_prevalence<-metadata_epi$Time_point
+metadata_epi$Time_point_prevalence<-as.factor(metadata_epi$Time_point_prevalence)
+metadata_epi$Time_point_prevalence<-plyr::revalue(metadata_epi$Time_point_prevalence,c("1"="1 (21.1%)","2"="2 (40%)","3"="3 (29.2%)","4"="4 (24%)"))
+##Extra figure for supplementary to show per resident MDRO pos/negative over time. Also add prevalence in % at each time point
+metadata_epi$MDRO_cultured <- factor(metadata_epi$MDRO_cultured, levels = c(0,1), labels = c("No","Yes"))
+
+MDRO_cultured_overview<-ggplot(metadata_epi)+
+  aes(x=Time_point_prevalence,y=Residentnumber,fill=MDRO_cultured,color=MDRO_cultured)+
+  geom_point(size=3)+
+  scale_fill_manual(values=c("dodgerblue2", "#E31A1C"))+
+  scale_color_manual(values=c("dodgerblue2", "#E31A1C"))+
+  theme(legend.title = element_text(size = 14))+
+  theme(legend.text=element_text(size=14))+
+  theme(axis.text=element_text(size=14))+
+  theme(axis.title=element_text(size=16))+
+  xlab("Time point and MDRO prevalence in %")+
+  ylab("Resident number")+
+  labs(fill="MDRO cultured")+
+  labs(color="MDRO cultured")
+
+ggsave(file="Fig1_MDRO_cultured_overview.svg", plot=MDRO_cultured_overview, width=12, height=10,dpi=1600)
+##Lastly, on reviewer's request, check whether there is a difference in mdro colonization rate between individuals included and excluded in our study
+included_excluded<-read_excel("Included_Excluded_residents.xlsx")
+rownames(included_excluded)<-included_excluded$...1
+chisq.test(included_excluded[,c(2:3)]) ##Not significant,p=0.26
+```
+##As only variables with at least 10 events will be further used for epidemiological analysis, first filter these out. 
+```{r}
+xtabs(~Ward, data=metadata_epi) ## Too many wards with less than 10 samples, so delete this variable for further analysis
+xtabs(~Building, data=metadata_epi)
+xtabs(~Ward_type, data=metadata_epi)
+xtabs(~Beds_per_room, data=metadata_epi) ## Only 7 samples with 2 beds per room, so delete 
+xtabs(~Toilet, data=metadata_epi) ## Only 7 samples with shared toilets, so delete
+xtabs(~Location_prior_nursinghome, data=metadata_epi) ## 3 categories with less than 10 samples, so delete. Do check this quickly in a table to make sure there is not an obvious difference which could be missed by leaving out this variable
+xtabs(~Location_prior_nursinghome+MDRO_cultured, data=metadata_epi) ## No difference between being at home or in a nursing home as previous location and risk of MDRO. So can leave this one out of analysis for sure
+xtabs(~Hospital_admittance_past_two_months, data=metadata_epi) ## Only 3 samples with hospital admittance in past 2 months, so delete
+xtabs(~Desoriented, data=metadata_epi)
+xtabs(~Mobility, data=metadata_epi) ##Only 8 triple chair, so delete
+xtabs(~Urinary_catheter_at_present, data=metadata_epi)
+xtabs(~Pressure_ulcer_wound, data=metadata_epi) ## Only 8 with yes, so delete
+xtabs(~Other_wound, data=metadata_epi)
+xtabs(~Urine_incontinence, data=metadata_epi)
+xtabs(~Faecal_incontinence, data=metadata_epi)
+xtabs(~Incontinence_urinary_OR_faecal, data=metadata_epi)
+xtabs(~Bile_disease_in_medical_history, data=metadata_epi) ## Only 7, so delete
+xtabs(~Urinary_tract_infection_in_medical_history, data=metadata_epi)
+xtabs(~Myocardial_infaction_in_medical_history, data=metadata_epi) ## Only 4 with yes, so delete
+xtabs(~Kidneyfailure_in_medical_history, data=metadata_epi) ## Only 9 with yes, so delete
+xtabs(~Heart_failure_in_medical_history, data=metadata_epi) ## Only 3 with yes, so delete
+xtabs(~Hemiplegia_in_medical_history, data=metadata_epi) ## None with yes, so delete
+xtabs(~Leukemia_in_medical_history, data=metadata_epi) ## None with yes, so delete
+xtabs(~Stroke_in_medical_history, data=metadata_epi)
+xtabs(~Lymphoma_in_medical_history, data=metadata_epi) ## None with yes, so delete
+xtabs(~Dementia_in_medical_history, data=metadata_epi)
+xtabs(~Cancer_in_medical_history, data=metadata_epi)
+xtabs(~VRE_in_medical_history, data=metadata_epi) ## None with yes, so delete
+xtabs(~MDRO_in_medical_history, data=metadata_epi) ## None with yes, so delete
+xtabs(~MRSA_in_medical_history, data=metadata_epi) ## Only 3 with yes, so delete
+xtabs(~COPD_in_medical_history, data=metadata_epi) ## Only 8 with yes, so delete
+xtabs(~Liverdisease_in_medical_history, data=metadata_epi) ## None with yes, so delete
+xtabs(~Connective_tissue_disease_in_medical_history, data=metadata_epi) ## None with yes, so delete
+xtabs(~AIDS_in_medical_history, data=metadata_epi) ## None with yes, so delete
+xtabs(~Diabetes_in_medical_history, data=metadata_epi)
+xtabs(~Stomach_ulcer_in_medical_history, data=metadata_epi) ## None with yes, so delete
+xtabs(~Bowel_disease_in_medical_history, data=metadata_epi) ## Only 3 with yes, so delete
+xtabs(~Hypertension_in_medical_history, data=metadata_epi)
+xtabs(~Bone_fracture_in_medical_history, data=metadata_epi)
+xtabs(~Antibiotic_use_at_present, data=metadata_epi) ## Only 4 with yes, so delete
+xtabs(~Antibiotic_use_in_past_2_months, data=metadata_epi)
+xtabs(~Proton_pump_inhibitor_at_present, data=metadata_epi)
+xtabs(~Diarrhoea_at_present, data=metadata_epi) ## Only 1 sample, so delete
+xtabs(~C_difficile_at_present, data=metadata_epi) ## None with yes, so delete
+xtabs(~Hospital_admittance_past_year, data=metadata_epi)
+##Throw out all variables in which for each category not at least 10 events were observed
+metadata_epi_excluded_less_10_events<-dplyr::select(metadata_epi, -c(Ward,Beds_per_room,Toilet,Location_prior_nursinghome,Hospital_admittance_past_two_months,Mobility,Pressure_ulcer_wound,Bile_disease_in_medical_history,Myocardial_infaction_in_medical_history,Kidneyfailure_in_medical_history,Heart_failure_in_medical_history,Hemiplegia_in_medical_history,Leukemia_in_medical_history,Lymphoma_in_medical_history,VRE_in_medical_history,MDRO_in_medical_history,MRSA_in_medical_history,COPD_in_medical_history,Liverdisease_in_medical_history,Connective_tissue_disease_in_medical_history,AIDS_in_medical_history,Stomach_ulcer_in_medical_history,Bowel_disease_in_medical_history,Antibiotic_use_at_present,Diarrhoea_at_present,C_difficile_at_present))
+
+##On Ed's request, perform univariate testing on Pressure_ulcer_wound and Kidneyfailure_in_medical_history
+logistic <- glm(MDRO_cultured ~ Pressure_ulcer_wound, data=metadata_epi, family="binomial")
+summary(logistic) 
+logistic <- glm(MDRO_cultured ~ Kidneyfailure_in_medical_history, data=metadata_epi, family="binomial")
+summary(logistic) 
+```
+##Now convert variables into necessary (e.g. class for MDRO_cultured)
+```{r}
+metadata_epi_excluded_less_10_events$Building <- as.factor(metadata_epi_excluded_less_10_events$Building)
+metadata_epi_excluded_less_10_events$Desoriented <- factor(metadata_epi_excluded_less_10_events$Desoriented, levels = c(0,1), labels = c("No", "Yes"))
+metadata_epi_excluded_less_10_events$Urinary_catheter_at_present <- factor(metadata_epi_excluded_less_10_events$Urinary_catheter_at_present, levels = c(0,1), labels = c("No","Yes"))
+metadata_epi_excluded_less_10_events$Other_wound <- factor(metadata_epi_excluded_less_10_events$Other_wound, levels = c(0,1), labels = c("No","Yes"))
+metadata_epi_excluded_less_10_events$Urine_incontinence <- factor(metadata_epi_excluded_less_10_events$Urine_incontinence, levels = c(0,1), labels = c("No","Yes"))
+metadata_epi_excluded_less_10_events$Faecal_incontinence <- factor(metadata_epi_excluded_less_10_events$Faecal_incontinence, levels = c(0,1), labels = c("No","Yes"))
+metadata_epi_excluded_less_10_events$Incontinence_urinary_OR_faecal <- factor(metadata_epi_excluded_less_10_events$Incontinence_urinary_OR_faecal, levels = c(0,1), labels = c("No","Yes"))
+metadata_epi_excluded_less_10_events$Urinary_tract_infection_in_medical_history <- factor(metadata_epi_excluded_less_10_events$Urinary_tract_infection_in_medical_history, levels = c(0,1), labels = c("No","Yes"))
+metadata_epi_excluded_less_10_events$Stroke_in_medical_history <- factor(metadata_epi_excluded_less_10_events$Stroke_in_medical_history, levels = c(0,1), labels = c("No","Yes"))
+metadata_epi_excluded_less_10_events$Dementia_in_medical_history <- factor(metadata_epi_excluded_less_10_events$Dementia_in_medical_history, levels = c(0,1), labels = c("No","Yes"))
+metadata_epi_excluded_less_10_events$Cancer_in_medical_history <- factor(metadata_epi_excluded_less_10_events$Cancer_in_medical_history, levels = c(0,1), labels = c("No","Yes"))
+metadata_epi_excluded_less_10_events$Diabetes_in_medical_history <- factor(metadata_epi_excluded_less_10_events$Diabetes_in_medical_history, levels = c(0,1), labels = c("No","Yes"))
+metadata_epi_excluded_less_10_events$Hypertension_in_medical_history <- factor(metadata_epi_excluded_less_10_events$Hypertension_in_medical_history, levels = c(0,1), labels = c("No","Yes"))
+metadata_epi_excluded_less_10_events$Bone_fracture_in_medical_history <- factor(metadata_epi_excluded_less_10_events$Bone_fracture_in_medical_history, levels = c(0,1), labels = c("No","Yes"))
+metadata_epi_excluded_less_10_events$Antibiotic_use_in_past_2_months <- factor(metadata_epi_excluded_less_10_events$Antibiotic_use_in_past_2_months, levels = c(0,1), labels = c("No","Yes"))
+metadata_epi_excluded_less_10_events$Proton_pump_inhibitor_at_present <- factor(metadata_epi_excluded_less_10_events$Proton_pump_inhibitor_at_present, levels = c(0,1), labels = c("No","Yes"))
+metadata_epi_excluded_less_10_events$Hospital_admittance_past_year <- factor(metadata_epi_excluded_less_10_events$Hospital_admittance_past_year, levels = c(0,1), labels = c("No","Yes"))
+#metadata_epi_excluded_less_10_events$MDRO_cultured <- factor(metadata_epi_excluded_less_10_events$MDRO_cultured, levels = c(0,1), labels = c("No","Yes"))
+```
+##Now perform univariate testing on all variables passing the 10 events criterium
+```{r}
+str(metadata_epi_excluded_less_10_events)
+logistic <- glm(MDRO_cultured ~ Sex, data=metadata_epi_excluded_less_10_events, family="binomial")
+summary(logistic) ## Not significant, but since it is sex, will include in multivariate anyway
+logistic <- glm(MDRO_cultured ~ Building, data=metadata_epi_excluded_less_10_events, family="binomial")
+summary(logistic) ## Borderline not signifcant (p=0.057)
+logistic <- glm(MDRO_cultured ~ Desoriented, data=metadata_epi_excluded_less_10_events, family="binomial")
+summary(logistic) ## Not significant at all
+logistic <- glm(MDRO_cultured ~ Urinary_catheter_at_present, data=metadata_epi_excluded_less_10_events, family="binomial")
+summary(logistic) ## Not significant, but include in multivariate based on expert opinion
+logistic <- glm(MDRO_cultured ~ Other_wound, data=metadata_epi_excluded_less_10_events, family="binomial")
+summary(logistic) ## Not significant at all
+logistic <- glm(MDRO_cultured ~ Urine_incontinence, data=metadata_epi_excluded_less_10_events, family="binomial")
+summary(logistic) ## Not significant at all
+logistic <- glm(MDRO_cultured ~ Faecal_incontinence, data=metadata_epi_excluded_less_10_events, family="binomial")
+summary(logistic) ## Not significant at all
+logistic <- glm(MDRO_cultured ~ Incontinence_urinary_OR_faecal, data=metadata_epi_excluded_less_10_events, family="binomial")
+summary(logistic) ## Not significant at all
+logistic <- glm(MDRO_cultured ~ Urinary_tract_infection_in_medical_history, data=metadata_epi_excluded_less_10_events, family="binomial")
+summary(logistic) ## Borderline not signifcant (p=0.057)
+logistic <- glm(MDRO_cultured ~ Stroke_in_medical_history, data=metadata_epi_excluded_less_10_events, family="binomial")
+summary(logistic) ## Not significant at all
+logistic <- glm(MDRO_cultured ~ Dementia_in_medical_history, data=metadata_epi_excluded_less_10_events, family="binomial")
+summary(logistic) ## Not significant at all
+logistic <- glm(MDRO_cultured ~ Cancer_in_medical_history, data=metadata_epi_excluded_less_10_events, family="binomial")
+summary(logistic) ## Not significant at all
+logistic <- glm(MDRO_cultured ~ Diabetes_in_medical_history, data=metadata_epi_excluded_less_10_events, family="binomial")
+summary(logistic) ## Not significant at all
+logistic <- glm(MDRO_cultured ~ Hypertension_in_medical_history, data=metadata_epi_excluded_less_10_events, family="binomial")
+summary(logistic) ## Significant, include in multivariate
+logistic <- glm(MDRO_cultured ~ Bone_fracture_in_medical_history, data=metadata_epi_excluded_less_10_events, family="binomial")
+summary(logistic) ## Significant, include in multivariate
+logistic <- glm(MDRO_cultured ~ Antibiotic_use_in_past_2_months, data=metadata_epi_excluded_less_10_events, family="binomial")
+summary(logistic) ## Significant, include in multivariate
+logistic <- glm(MDRO_cultured ~ Proton_pump_inhibitor_at_present, data=metadata_epi_excluded_less_10_events, family="binomial")
+summary(logistic) ## Not significant at all
+logistic <- glm(MDRO_cultured ~ Hospital_admittance_past_year, data=metadata_epi_excluded_less_10_events, family="binomial")
+summary(logistic) ## Significant, include in multivariate
+```
+##Now move to multivariate logistic regression
+```{r}
+logistic <- glm(MDRO_cultured ~ Sex+Urinary_catheter_at_present+Hypertension_in_medical_history+Bone_fracture_in_medical_history+Antibiotic_use_in_past_2_months+Hospital_admittance_past_year, data=metadata_epi_excluded_less_10_events, family="binomial")
+summary(logistic)
+car::vif(logistic) ## Check colinearity, values above 5 indicate highly correlated variables. Since all variables are below 2, there is no real colinearity.
+```
+
+## It was indicated by the reviewer that our approach of standard logistic regression was not correct, due to the repeated measures design, which completely correct. Therefore, we employ instead the GEE Logistic Regression. We can then use the same workflow as for the original LR (first univariable LR, then significant + 'likely clinical variables' in the multivariable). These are also the results as reported in our paper.
+```{r}
+##geeglm needs MDRO cultured to be numeric (0 or 1)
+metadata_epi_excluded_less_10_events$MDRO_cultured<-as.character(metadata_epi_excluded_less_10_events$MDRO_cultured)
+metadata_epi_excluded_less_10_events$MDRO_cultured<-plyr::revalue(metadata_epi_excluded_less_10_events$MDRO_cultured,c("No"="0","Yes"="1"))
+metadata_epi_excluded_less_10_events$MDRO_cultured<-as.numeric(metadata_epi_excluded_less_10_events$MDRO_cultured)
+metadata_epi_excluded_less_10_events$Time_point<-as.factor(as.character(metadata_epi_excluded_less_10_events$Time_point))
+metadata_epi_excluded_less_10_events$Residentnumber<-as.factor(metadata_epi_excluded_less_10_events$Residentnumber)
+
+geeglm_result<-geeglm(MDRO_cultured ~ Sex,id = Residentnumber, data = metadata_epi_excluded_less_10_events, family = "binomial")
+summary(geeglm_result)
+geeglm_result<-geeglm(MDRO_cultured ~ Building,id = Residentnumber, data = metadata_epi_excluded_less_10_events, family = "binomial")
+summary(geeglm_result)
+geeglm_result<-geeglm(MDRO_cultured ~ Desoriented,id = Residentnumber, data = metadata_epi_excluded_less_10_events, family = "binomial")
+summary(geeglm_result)
+geeglm_result<-geeglm(MDRO_cultured ~ Urinary_catheter_at_present,id = Residentnumber, data = metadata_epi_excluded_less_10_events, family = "binomial")
+summary(geeglm_result)
+geeglm_result<-geeglm(MDRO_cultured ~ Other_wound,id = Residentnumber, data = metadata_epi_excluded_less_10_events, family = "binomial")
+summary(geeglm_result)
+geeglm_result<-geeglm(MDRO_cultured ~ Urine_incontinence,id = Residentnumber, data = metadata_epi_excluded_less_10_events, family = "binomial")
+summary(geeglm_result)
+geeglm_result<-geeglm(MDRO_cultured ~ Faecal_incontinence,id = Residentnumber, data = metadata_epi_excluded_less_10_events, family = "binomial")
+summary(geeglm_result)
+geeglm_result<-geeglm(MDRO_cultured ~ Incontinence_urinary_OR_faecal,id = Residentnumber, data = metadata_epi_excluded_less_10_events, family = "binomial")
+summary(geeglm_result)
+geeglm_result<-geeglm(MDRO_cultured ~ Urinary_tract_infection_in_medical_history,id = Residentnumber, data = metadata_epi_excluded_less_10_events, family = "binomial")
+summary(geeglm_result)
+geeglm_result<-geeglm(MDRO_cultured ~ Stroke_in_medical_history,id = Residentnumber, data = metadata_epi_excluded_less_10_events, family = "binomial")
+summary(geeglm_result)
+geeglm_result<-geeglm(MDRO_cultured ~ Dementia_in_medical_history,id = Residentnumber, data = metadata_epi_excluded_less_10_events, family = "binomial")
+summary(geeglm_result)
+geeglm_result<-geeglm(MDRO_cultured ~ Cancer_in_medical_history,id = Residentnumber, data = metadata_epi_excluded_less_10_events, family = "binomial")
+summary(geeglm_result)
+geeglm_result<-geeglm(MDRO_cultured ~ Diabetes_in_medical_history,id = Residentnumber, data = metadata_epi_excluded_less_10_events, family = "binomial")
+summary(geeglm_result)
+geeglm_result<-geeglm(MDRO_cultured ~ Hypertension_in_medical_history,id = Residentnumber, data = metadata_epi_excluded_less_10_events, family = "binomial")
+summary(geeglm_result)
+geeglm_result<-geeglm(MDRO_cultured ~ Bone_fracture_in_medical_history,id = Residentnumber, data = metadata_epi_excluded_less_10_events, family = "binomial")
+summary(geeglm_result)
+geeglm_result<-geeglm(MDRO_cultured ~ Antibiotic_use_in_past_2_months,id = Residentnumber, data = metadata_epi_excluded_less_10_events, family = "binomial")
+summary(geeglm_result)
+#geeglm_result<-geeglm(MDRO_cultured ~ Proton_pump_inhibitor_at_present,id = Residentnumber, data = metadata_epi_excluded_less_10_events, family = "binomial")
+#summary(geeglm_result) ## As one missing for PPIs, select data frame without the missing row
+geeglm_result<-geeglm(MDRO_cultured ~ Proton_pump_inhibitor_at_present,id = Residentnumber, data = metadata_epi_excluded_less_10_events[-81,], family = "binomial")
+summary(geeglm_result)
+geeglm_result<-geeglm(MDRO_cultured ~ Hospital_admittance_past_year,id = Residentnumber, data = metadata_epi_excluded_less_10_events, family = "binomial")
+summary(geeglm_result)
+```
+## obtain effect size and CI for the 3 significant variables
+```{r}
+geeglm_result<-geeglm(MDRO_cultured ~ Bone_fracture_in_medical_history,id = Residentnumber, data = metadata_epi_excluded_less_10_events, family = "binomial")
+summary(geeglm_result)
+print(tidy(geeglm_result,conf.int = TRUE))
+geeglm_result<-geeglm(MDRO_cultured ~ Antibiotic_use_in_past_2_months,id = Residentnumber, data = metadata_epi_excluded_less_10_events, family = "binomial")
+summary(geeglm_result)
+print(tidy(geeglm_result,conf.int = TRUE))
+geeglm_result<-geeglm(MDRO_cultured ~ Hospital_admittance_past_year,id = Residentnumber, data = metadata_epi_excluded_less_10_events, family = "binomial")
+summary(geeglm_result)
+print(tidy(geeglm_result,conf.int = TRUE)) ## These numbers are converted into log odds in the paper.
+```
+## Multivariable GEE logistic regression
+```{r}
+gee_multivariable <- geeglm(MDRO_cultured ~Sex+Urinary_catheter_at_present+Bone_fracture_in_medical_history+Antibiotic_use_in_past_2_months+Hospital_admittance_past_year, id=Residentnumber, data=metadata_epi_excluded_less_10_events, family="binomial")
+summary(gee_multivariable)
+print(tidy(gee_multivariable,conf.int = TRUE))
+## Can still interpret the VIF from the original logistic regression, so no need to recompute this.
+```
+## Just zoom in on bone fracture in medical history, as quite a stringe finding
+```{r}
+metadata_epi_bone_fracture<-subset(metadata_epi_excluded_less_10_events,Bone_fracture_in_medical_history=="Yes")
+xtabs(~Hospital_admittance_past_year+Antibiotic_use_in_past_2_months,data=metadata_epi_bone_fracture)
+metadata_epi_no_bone_fracture<-subset(metadata_epi_excluded_less_10_events,Bone_fracture_in_medical_history=="No")
+xtabs(~Hospital_admittance_past_year+Antibiotic_use_in_past_2_months,data=metadata_epi_no_bone_fracture)
+xtabs(~Hospital_admittance_past_year+Antibiotic_use_in_past_2_months+Bone_fracture_in_medical_history,data=metadata_epi_excluded_less_10_events)
+```
+
