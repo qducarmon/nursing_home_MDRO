@@ -1,0 +1,124 @@
+---
+title: "Compositional_Plots"
+author: "QD"
+output: html_document
+---
+
+##First make compositional plots of 16S data on phylum and family level. Then, probably species level from metagenomes is a good idea.
+```{r}
+phylum_composition<-microbiome::aggregate_top_taxa(OTU_005_rel_samples,top=7,"Phylum")
+phylum_composition_df<-psmelt(phylum_composition)
+phylum_composition_df$Phylum<-gsub("p__","",phylum_composition_df$Phylum)
+phylum_composition_df$Phylum<-gsub("^$","Unclassified",phylum_composition_df$Phylum)
+phylum_composition_df$Phylum<-fct_relevel(phylum_composition_df$Phylum,"Unclassified",after=Inf)
+phylum_composition_df$Phylum<-fct_relevel(phylum_composition_df$Phylum,"Other",after=Inf)
+
+phylum_composition_df<-phylum_composition_df[,-c(15:60)]
+compositional_phylum<-ggplot(phylum_composition_df)+
+  aes(x=Time_point,y=Abundance,fill=Phylum,color=Phylum)+
+  geom_bar(stat="identity",colour=NA)+
+  scale_fill_brewer(palette="Paired")+
+  theme(axis.text.x = element_text(angle=45,hjust=1))+
+  theme(legend.text = element_text(face = "italic"))+
+  theme(axis.text.x=element_text(size=8))+
+  ylab("Relative abundance")+
+  xlab("Time point")+
+  facet_wrap(~Residentnumber)
+```
+##Family level 16S data
+```{r}
+manualcolors<-c( 'red2','forestgreen', 'orange', 'cornflowerblue', 
+                'magenta', 'darkolivegreen4',  
+                'indianred1', 'firebrick4', 
+                'mediumorchid1','darkblue',  'yellowgreen', 'tan3',
+                "tan1",'darkgray', 'wheat4', '#DDAD4B',
+                'moccasin', 'mediumvioletred', 'seagreen','cadetblue1',
+                "darkolivegreen1","tan2","tomato3" )
+
+family_composition<-microbiome::aggregate_top_taxa(OTU_005_rel_samples,top=20,"Family")
+family_composition_df<-psmelt(family_composition)
+family_composition_df$Family<-gsub("f__","",family_composition_df$Family)
+family_composition_df$Family<-fct_relevel(family_composition_df$Family,"Other",after=Inf)
+
+
+compositional_family<-ggplot(family_composition_df)+
+  aes(x=Time_point,y=Abundance,fill=Family,color=Family)+
+  geom_bar(stat="identity",colour=NA)+
+  scale_fill_manual(values=manualcolors)+
+  theme(axis.text.x = element_text(angle=45,hjust=1))+
+  theme(legend.text = element_text(face = "italic"))+
+  theme(axis.text.x=element_text(size=8))+
+  ylab("Relative abundance")+
+  xlab("Time point")+
+  facet_wrap(~Residentnumber+Sex) ##Added Sex to see if there was a clear difference in Bifido abundance between male/female, but this does not seem to be the case.
+```
+##Genus level 16S
+```{r}
+manualcolors<-c( 'red2','forestgreen', 'orange','magenta', 'cornflowerblue', 
+                 'darkolivegreen4',  
+                'indianred1', 'firebrick4', 
+                'mediumorchid1','darkblue',  'yellowgreen', 'tan3',
+                "tan1",'darkgray', 'wheat4', '#DDAD4B',
+                'moccasin', 'mediumvioletred', 'seagreen','cadetblue1',
+                "darkolivegreen1","tan2","tomato3" )
+
+genus_composition<-microbiome::aggregate_top_taxa(OTU_005_rel_samples,top=20,"Genus")
+genus_composition_df<-psmelt(genus_composition)
+genus_composition_df$Genus<-gsub("g__","",genus_composition_df$Genus)
+##One genus is not classified up until genus level, so need to find outwhich family this is.It has an abundance of 0.1027822080 in L018 on time point 3.
+test1<-psmelt(genus_005_rel_samples)
+test1<-subset(test1,Custom_ID=="M17012535-L018-3") ## OTU 322282287 corresponds exactly to this abundance
+test1<-subset(test1,OTU=="322282287") 
+colnames(test1) 
+test1[,92] ## so it is a Lachnosopiraceae family
+unique(genus_composition_df$Genus)
+genus_composition_df$Genus<-gsub("^$","Lachnospiraceae",genus_composition_df$Genus)
+genus_composition_df$Genus<-fct_relevel(genus_composition_df$Genus,"Other",after=Inf)
+
+compositional_genus<-ggplot(genus_composition_df)+
+  aes(x=Time_point,y=Abundance,fill=Genus,color=Genus)+
+  geom_bar(stat="identity",colour=NA)+
+  scale_fill_manual(values=manualcolors)+
+  theme(axis.text.x = element_text(angle=45,hjust=1))+
+  theme(legend.text = element_text(face = "italic"))+
+  theme(axis.text.x=element_text(size=8))+
+  ylab("Relative abundance")+
+  xlab("Time point")+
+  facet_wrap(~Residentnumber)+
+  guides(fill=guide_legend(ncol=1))
+
+compositional_16S_phylum_genus<-ggarrange(compositional_phylum,compositional_genus,labels=c("A","B",ncol=1,nrow=2))
+ggsave(file="Fig6_compositional_16S_phylum_genus.svg", plot=compositional_16S_phylum_genus, width=16, height=8,dpi=1600)
+```
+
+##Species level metagenomic data
+```{r}
+manualcolors<-c( 'magenta','red2','forestgreen', 'orange', 'cornflowerblue', 
+                 'darkolivegreen4',  
+                'indianred1', 'firebrick4', 
+                '#DDAD4B','darkblue',  'yellowgreen', 'tan3',
+                "tan1",'darkgray', 'wheat4', 'mediumorchid1',
+                'moccasin', 'mediumvioletred', 'seagreen','cadetblue1',
+                "darkolivegreen1","tan2","tomato3" )
+species_composition<-microbiome::aggregate_top_taxa(physeq_metagenomes_filtered_samples,top=20,"Species_with_mOTUnr")
+species_composition_df<-psmelt(species_composition)
+unique(species_composition_df$Species_with_mOTUnr) ##Do some ugly renaming below to make the names appropriate for a normal legend.
+species_composition_df$Species_with_mOTUnr<-plyr::revalue(species_composition_df$Species_with_mOTUnr,c("Alistipes finegoldii/onderdonkii [Alistipes sp. CAG:29/Alistipes sp. AL-1/Alistipes finegoldii/Alistipes onderdonkii] [ref_mOTU_v25_03069]"="Alistipes finegoldii/onderdonkii [ref_mOTU_v25_03069]","Bifidobacterium breve [Bifidobacterium breve/Actinobacteria bacterium UC5.1-1C2] [ref_mOTU_v25_01098]"="Bifidobacterium breve [ref_mOTU_v25_01098]","Bifidobacterium longum [Bifidobacterium longum CAG:69/Bifidobacterium longum] [ref_mOTU_v25_01099]"="Bifidobacterium longum [ref_mOTU_v25_01099]","Collinsella aerofaciens [Collinsella sp. CAG:166/Collinsella sp. 4_8_47FAA/Collinsella aerofaciens] [ref_mOTU_v25_03626]"="Collinsella aerofaciens [ref_mOTU_v25_03626]","Methanobrevibacter smithii [Methanobrevibacter smithii CAG:186/Methanobrevibacter sp. A54/Methanobrevibacter smithii] [ref_mOTU_v25_03695]"="Methanobrevibacter smithii [ref_mOTU_v25_03695]","Bifidobacterium bifidum [Bifidobacterium bifidum CAG:234/Bifidobacterium bifidum] [ref_mOTU_v25_03116]"="Bifidobacterium bifidum [ref_mOTU_v25_03116]","Blautia massiliensis [Blautia sp. KLE 1732/Blautia sp. SF-50/Blautia massiliensis/Ruminococcus sp. SR1/5/uncultured Blautia sp.] [ref_mOTU_v25_03342]"="Blautia massiliensis [ref_mOTU_v25_03342]","[Eubacterium] rectale [Eubacterium rectale CAG:36/Eubacterium sp. 41_20/[Eubacterium] rectale] [ref_mOTU_v25_03657]"="[Eubacterium] rectale [ref_mOTU_v25_03657]","Bacteroides dorei/vulgatus [Bacteroidia bacterium UC5.1-2G11/Candidatus Gastranaerophilales bacterium HUM_8/Bacteroides dorei/Bacteroides sp. 3_1_33FAA/Bacteroides sp. 4_3_47FAA/Bacteroides sp. 9_1_42FAA/Bacteroides sp. 3_1_40A/Bacteroides vulgatus] [ref_mOTU_v25_02367]"="Bacteroides dorei/vulgatus [ref_mOTU_v25_02367]","Eggerthella lenta [Eggerthella sp. 1_3_56FAA/Eggerthella lenta/Eggerthella sp. HGA1] [ref_mOTU_v25_00719]"="Eggerthella lenta [ref_mOTU_v25_00719]","NA [-1"="Not_classified [-1]"))
+species_composition_df$Time_point<-as.factor(species_composition_df$Time_point)
+species_composition_df<-species_composition_df %>% dplyr::rename(Bacterial_species=Species_with_mOTUnr)
+
+
+metagenome_composition<-ggplot(species_composition_df)+
+  aes(x=Time_point,y=Abundance,fill=Bacterial_species,color=Bacterial_species)+
+  geom_bar(stat="identity",colour=NA)+
+  scale_fill_manual(values=manualcolors)+
+  theme(axis.text.x = element_text(angle=45,hjust=1))+
+  theme(legend.text = element_text(face = "italic"))+
+  theme(axis.text.x=element_text(size=12),axis.title=element_text(size=16))+
+  ylab("Relative abundance")+
+  xlab("Time point")+
+  theme(legend.text=element_text(size=14),legend.title=element_text(size=16))+
+  facet_wrap(~Residentnumber)+
+  guides(fill=guide_legend(ncol=1))
+```
+
