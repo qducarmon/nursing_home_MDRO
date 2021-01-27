@@ -1,0 +1,58 @@
+---
+title: "AMR_WGS_Isolates"
+author: "QD+SN"
+output: html_document
+---
+
+## Annotations for heatmap
+```{r}
+annot_df_filtered<-read_xlsx("annotation_mdro_isolates.xlsx")
+annot_df_filtered<-as.data.frame(annot_df_filtered)
+rownames(annot_df_filtered)<-annot_df_filtered$ID
+annot_df_filtered<-annot_df_filtered[,-1]
+```
+## add some colours that are easy to distinguish:
+```{r}
+# 9 STs:
+brewer.pal(9, "Set3")
+# 7 wards:
+brewer.pal(7, "Set2")
+# X patients:
+
+annot_cols <- list(
+  ST = c('-' = "#001E09", '10' = "#C2FF99", '131' = "#C0B9B2", '2768' = "#CC0744",
+         '354' = "#A079BF", '847' = "#00846F"),
+  Ward = c('A' = "#FFD92F",'B' = "#A6D854",'C' = "#E78AC3",'E' = "#FC8D62",'F' = "#8DA0CB", 'G' = "#66C2A5"),
+  Residentnumber = c(L003 = "#000000", L010 = "#FFFF00", L011 = "#1CE6FF", L012 = "#FF34FF",
+                 L013 = "#FF4A46", L029 = "#A30059", L033 = "#FFDBE5", L035 = "#63FFAC",
+                 R002 = "#004D43", R003 = "#8FB0FF", R004 = "#997D87"),
+  Time_point = c("1"="#CCFFCC","2"="#66FF66","3"="#00FF00","4"="#009900"))
+
+## More colours from https://godsnotwheregodsnot.blogspot.com/2012/09/color-distribution-methodology.html
+
+more_colours <- c("#4FC601", "#3B5DFF", "#4A3B53", "#FF2F80",
+"#61615A", "#BA0900", "#6B7900", "#00C2A0", "#FFAA92", "#FF90C9", "#B903AA", "#D16100",
+"#DDEFFF", "#000035", "#7B4F4B", "#A1C299", "#300018", "#0AA6D8", "#013349", "#00846F",
+"#372101", "#FFB500", "#C2FFED", "#A079BF", "#CC0744", "#C0B9B2", "#C2FF99", "#001E09")
+
+```
+### Annotated heatmaps
+```{r}
+pres_abs_filtered<-read_xlsx("pres_abs_amr_filtered.xlsx")
+pres_abs_filtered<-as.data.frame(pres_abs_filtered)
+rownames(pres_abs_filtered)<-pres_abs_filtered$Isolate.ID
+
+annotated_ABR_heatmap_no_plasmid<-pheatmap(as.matrix(t(pres_abs_filtered[, -c(1,2)])),
+         cluster_rows = FALSE,
+         clustering_distance_cols = "euclidean",
+         main = "Antimicrobial resistance genes in E. coli strains",
+         legend = FALSE,
+         legend_breaks = c(0, 1),
+         #legend_labels = c('0', '1'),
+         color = c(0, 1),
+         annotation_col = subset(annot_df_filtered, select=c("Residentnumber", "Time_point", "Ward", "ST")),
+         annotation_colors = annot_cols,
+         gaps_row = c(9, 10, 16, 18, 22,23, 24, 26, 28))
+
+ggsave(file="Fig3_annotated_ABR_heatmap.svg", plot=annotated_ABR_heatmap_no_plasmid, width=12, height=10,dpi=1600)
+```
