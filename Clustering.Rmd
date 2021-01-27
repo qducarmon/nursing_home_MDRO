@@ -1,0 +1,53 @@
+---
+title: "Clustering_Dimension_Reduction"
+author: "QD"
+output: html_document
+---
+##Diverging color pallete for 27 individuals
+```{r}
+c30 <- c(
+  "dodgerblue2", "#E31A1C", # red
+  "green4",
+  "#6A3D9A", # purple
+  "#FF7F00", # orange
+  "black", "gold1",
+  "skyblue2", "#FB9A99", # lt pink
+  "palegreen2",
+  "#CAB2D6", # lt purple
+  "#FDBF6F", # lt orange
+  "gray70", "khaki2",
+  "maroon", "orchid1", "deeppink1", "blue1", "steelblue4",
+  "darkturquoise", "green1", "yellow4", "yellow3",
+  "darkorange4", "brown","indianred1","darkblue","firebrick4","yellowgreen"," wheat4"
+)
+```
+
+
+## Dimension reduction plots to see if trends can be observed for MDRO positive/negative samples. Perform at genus level
+##Start with PCoA
+```{r}
+pcoa_genus <- ordinate(genus_005_rel_samples, method='PCoA', distance = 'bray')
+pcoa_MDRO_status<-plot_ordination(genus_005_rel_samples, pcoa_genus, color="MDRO_cultured", title='PCoA (Bray-Curtis)') + geom_point(size=3)+xlab("PC1 [22.0%]")+ylab("PC2 [19.3%]")+scale_color_manual(values=c30)+stat_ellipse(type="norm",linetype=2)+labs(color="MDRO cultured")
+```
+## New figure 4 for revision. This also includes stability (to account for repeated measures)
+```{r}
+beta_diversity<-ggarrange(pcoa_MDRO_status,Ever_colonized_stability,labels=c("A","B",ncol=1,nrow=2))
+ggsave(file="Fig4_Beta_Diversity.svg", plot=beta_diversity, width=12, height=8,dpi=1600)
+```
+
+## Intra-individual approach, compare groups with first negative then positive sample. This figure and the one below did not end up in the manuscript, but feel free to have a look at it.
+```{r}
+genus_005_rel_samples_transient_pre<-subset_samples(genus_005_rel_samples,Transient_colonization_pre=="pre colonisation"|Transient_colonization_pre=="colonisation")
+pcoa_genus <- ordinate(genus_005_rel_samples_transient_pre, method='PCoA', distance = 'bray')
+pcoa_transient_colonization_pre<-plot_ordination(genus_005_rel_samples_transient_pre, pcoa_genus, color="Residentnumber",shape="Transient_colonization_pre", title='PCoA (Bray-Curtis)')+geom_point(size=3)+scale_color_manual(values=c30)+labs(color="Resident number")+labs(shape="Transient colonisation status")+xlab("PC1 [30.1%]")+ylab("PC2 [18.6%]")
+pcoa_transient_colonization_pre
+```
+
+## Now compare people first positive then negative
+```{r}
+genus_005_rel_samples_transient_post<-subset_samples(genus_005_rel_samples,Transient_colonization_post=="post colonisation"|Transient_colonization_post=="colonisation")
+pcoa_genus <- ordinate(genus_005_rel_samples_transient_post, method='PCoA', distance = 'bray')
+pcoa_transient_colonization_post<-plot_ordination(genus_005_rel_samples_transient_post, pcoa_genus, color="Residentnumber",shape="Transient_colonization_post", title='PCoA (Bray-Curtis)')+geom_point(size=3)+scale_color_manual(values=c30)+labs(color="Resident number")+labs(shape="Transient colonisation status")+xlab("PC1 [38.0%]")+ylab("PC2 [14.4%]")
+pcoa_transient_colonization_post
+```
+
