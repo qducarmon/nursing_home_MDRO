@@ -1,0 +1,228 @@
+---
+title: "Beta diversity and permanova"
+author: "QD"
+output: html_document
+---
+##Here, we will check if there is a difference in overall composition between samples positive for MDRO and residents who were ever vs. never colonized (through intra-individual stability). 
+```{r}
+metadata_perm<-meta(genus_005_rel_samples)
+bray_matrix<-phyloseq::distance(genus_005_rel_samples,method="bray")
+betadisper_test<-betadisper(bray_matrix,metadata_perm$MDRO_cultured)
+permutest(betadisper_test) ##Means we cannot reject that the groups have the same dispersions, so this gives us higher confidence that adonis rseults are real
+set.seed(1000) ## To ensure reproducible results
+##Include strata argument to account for repeated measures
+adonis_result<-adonis(bray_matrix~MDRO_cultured,data=metadata_perm,permutations=999,strata=metadata_perm$Residentnumber) ## Use this outcome as a result for the paper
+```
+
+## Compute intra-individual stability for ever vs never colonized per resident. This is done at genus level. Have to make sure that I do not include the same sample comparisons. Build a data frame with columns 1) resident number 2) 'ever' vs 'never' colonized and 3) mean of intraindividual Bray-Curtis. I chose to get the values manually, as there are not many samples and it would probably take longer to write a function.
+```{r}
+metadata_intra_stability<-metadata_perm[,c(6,63)]
+metadata_intra_stability<-metadata_intra_stability[!duplicated(metadata_intra_stability$Residentnumber), ]
+rownames(metadata_intra_stability) <- c()
+metadata_intra_stability$BC_diss<-NA
+metadata_intra_stability$Residentnumber<-sort(metadata_intra_stability$Residentnumber)
+
+phylo_L001<-subset_samples(genus_005_rel_samples,Residentnumber=="L001")
+L001<-phyloseq::distance(phylo_L001, method="bray", type="samples")
+L001<-as.matrix(L001) ## To calculate the mean, need to exclude diagonal numbers, as all 0
+mean(L001[lower.tri(L001) | upper.tri(L001)]) ## Double check whether this code works. Works perfectly fine. Just get the values manually, as there are not many samples and it would probably take longer to write a function.
+metadata_intra_stability[1,3]<-mean(L001[lower.tri(L001) | upper.tri(L001)])
+
+phylo_L002<-subset_samples(genus_005_rel_samples,Residentnumber=="L002")
+L002<-phyloseq::distance(phylo_L002, method="bray", type="samples")
+L002<-as.matrix(L002) ## To calculate the mean, need to exclude diagonal numbers, as all 0
+mean(L002[lower.tri(L002) | upper.tri(L002)]) ## Double check whether this code works.
+metadata_intra_stability[2,3]<-mean(L002[lower.tri(L002) | upper.tri(L002)])
+
+phylo_L003<-subset_samples(genus_005_rel_samples,Residentnumber=="L003")
+L003<-phyloseq::distance(phylo_L003, method="bray", type="samples")
+L003<-as.matrix(L003) ## To calculate the mean, need to exclude diagonal numbers, as all 0
+mean(L003[lower.tri(L003) | upper.tri(L003)]) ## Double check whether this code works.
+metadata_intra_stability[3,3]<-mean(L003[lower.tri(L003) | upper.tri(L003)])
+
+phylo_L006<-subset_samples(genus_005_rel_samples,Residentnumber=="L006")
+L006<-phyloseq::distance(phylo_L006, method="bray", type="samples")
+L006<-as.matrix(L006) ## To calculate the mean, need to exclude diagonal numbers, as all 0
+mean(L006[lower.tri(L006) | upper.tri(L006)]) ## Double check whether this code works.
+metadata_intra_stability[4,3]<-mean(L006[lower.tri(L006) | upper.tri(L006)])
+
+phylo_L007<-subset_samples(genus_005_rel_samples,Residentnumber=="L007")
+L007<-phyloseq::distance(phylo_L007, method="bray", type="samples")
+L007<-as.matrix(L007) ## To calculate the mean, need to exclude diagonal numbers, as all 0
+mean(L007[lower.tri(L007) | upper.tri(L007)]) ## Double check whether this code works.
+metadata_intra_stability[5,3]<-mean(L007[lower.tri(L007) | upper.tri(L007)])
+
+phylo_L010<-subset_samples(genus_005_rel_samples,Residentnumber=="L010")
+L010<-phyloseq::distance(phylo_L010, method="bray", type="samples")
+L010<-as.matrix(L010) ## To calculate the mean, need to exclude diagonal numbers, as all 0
+mean(L010[lower.tri(L010) | upper.tri(L010)]) ## Double check whether this code works.
+metadata_intra_stability[6,3]<-mean(L010[lower.tri(L010) | upper.tri(L010)])
+
+phylo_L011<-subset_samples(genus_005_rel_samples,Residentnumber=="L011")
+L011<-phyloseq::distance(phylo_L011, method="bray", type="samples")
+L011<-as.matrix(L011) ## To calculate the mean, need to exclude diagonal numbers, as all 0
+mean(L011[lower.tri(L011) | upper.tri(L011)]) ## Double check whether this code works.
+metadata_intra_stability[7,3]<-mean(L011[lower.tri(L011) | upper.tri(L011)])
+
+phylo_L012<-subset_samples(genus_005_rel_samples,Residentnumber=="L012")
+L012<-phyloseq::distance(phylo_L012, method="bray", type="samples")
+L012<-as.matrix(L012) ## To calculate the mean, need to exclude diagonal numbers, as all 0
+mean(L012[lower.tri(L012) | upper.tri(L012)]) ## Double check whether this code works.
+metadata_intra_stability[8,3]<-mean(L012[lower.tri(L012) | upper.tri(L012)])
+
+phylo_L013<-subset_samples(genus_005_rel_samples,Residentnumber=="L013")
+L013<-phyloseq::distance(phylo_L013, method="bray", type="samples")
+L013<-as.matrix(L013) ## To calculate the mean, need to exclude diagonal numbers, as all 0
+mean(L013[lower.tri(L013) | upper.tri(L013)]) ## Double check whether this code works.
+metadata_intra_stability[9,3]<-mean(L013[lower.tri(L013) | upper.tri(L013)])
+
+phylo_L015<-subset_samples(genus_005_rel_samples,Residentnumber=="L015")
+L015<-phyloseq::distance(phylo_L015, method="bray", type="samples")
+L015<-as.matrix(L015) ## To calculate the mean, need to exclude diagonal numbers, as all 0
+mean(L015[lower.tri(L015) | upper.tri(L015)]) ## Double check whether this code works.
+metadata_intra_stability[10,3]<-mean(L015[lower.tri(L015) | upper.tri(L015)])
+
+phylo_L017<-subset_samples(genus_005_rel_samples,Residentnumber=="L017")
+L017<-phyloseq::distance(phylo_L017, method="bray", type="samples")
+L017<-as.matrix(L017) ## To calculate the mean, need to exclude diagonal numbers, as all 0
+mean(L017[lower.tri(L017) | upper.tri(L017)]) ## Double check whether this code works.
+metadata_intra_stability[11,3]<-mean(L017[lower.tri(L017) | upper.tri(L017)])
+
+phylo_L018<-subset_samples(genus_005_rel_samples,Residentnumber=="L018")
+L018<-phyloseq::distance(phylo_L018, method="bray", type="samples")
+L018<-as.matrix(L018) ## To calculate the mean, need to exclude diagonal numbers, as all 0
+mean(L018[lower.tri(L018) | upper.tri(L018)]) ## Double check whether this code works.
+metadata_intra_stability[12,3]<-mean(L018[lower.tri(L018) | upper.tri(L018)])
+
+phylo_L026<-subset_samples(genus_005_rel_samples,Residentnumber=="L026")
+L026<-phyloseq::distance(phylo_L026, method="bray", type="samples")
+L026<-as.matrix(L026) ## To calculate the mean, need to exclude diagonal numbers, as all 0
+mean(L026[lower.tri(L026) | upper.tri(L026)]) ## Double check whether this code works.
+metadata_intra_stability[13,3]<-mean(L026[lower.tri(L026) | upper.tri(L026)])
+
+phylo_L028<-subset_samples(genus_005_rel_samples,Residentnumber=="L028")
+L028<-phyloseq::distance(phylo_L028, method="bray", type="samples")
+L028<-as.matrix(L028) ## To calculate the mean, need to exclude diagonal numbers, as all 0
+mean(L028[lower.tri(L028) | upper.tri(L028)]) ## Double check whether this code works.
+metadata_intra_stability[14,3]<-mean(L028[lower.tri(L028) | upper.tri(L028)])
+
+phylo_L029<-subset_samples(genus_005_rel_samples,Residentnumber=="L029")
+L029<-phyloseq::distance(phylo_L029, method="bray", type="samples")
+L029<-as.matrix(L029) ## To calculate the mean, need to exclude diagonal numbers, as all 0
+mean(L029[lower.tri(L029) | upper.tri(L029)]) ## Double check whether this code works.
+metadata_intra_stability[15,3]<-mean(L029[lower.tri(L029) | upper.tri(L029)])
+
+phylo_L030<-subset_samples(genus_005_rel_samples,Residentnumber=="L030")
+L030<-phyloseq::distance(phylo_L030, method="bray", type="samples")
+L030<-as.matrix(L030) ## To calculate the mean, need to exclude diagonal numbers, as all 0
+mean(L001[lower.tri(L030) | upper.tri(L030)]) ## Double check whether this code works.
+metadata_intra_stability[16,3]<-mean(L030[lower.tri(L030) | upper.tri(L030)])
+
+phylo_L031<-subset_samples(genus_005_rel_samples,Residentnumber=="L031")
+L031<-phyloseq::distance(phylo_L031, method="bray", type="samples")
+L031<-as.matrix(L031) ## To calculate the mean, need to exclude diagonal numbers, as all 0
+mean(L031[lower.tri(L031) | upper.tri(L031)]) ## Double check whether this code works.
+metadata_intra_stability[17,3]<-mean(L031[lower.tri(L031) | upper.tri(L031)])
+
+phylo_L033<-subset_samples(genus_005_rel_samples,Residentnumber=="L033")
+L033<-phyloseq::distance(phylo_L033, method="bray", type="samples")
+L033<-as.matrix(L033) ## To calculate the mean, need to exclude diagonal numbers, as all 0
+mean(L033[lower.tri(L033) | upper.tri(L033)]) ## Double check whether this code works.
+metadata_intra_stability[18,3]<-mean(L033[lower.tri(L033) | upper.tri(L033)])
+
+phylo_L035<-subset_samples(genus_005_rel_samples,Residentnumber=="L035")
+L035<-phyloseq::distance(phylo_L035, method="bray", type="samples")
+L035<-as.matrix(L035) ## To calculate the mean, need to exclude diagonal numbers, as all 0
+mean(L035[lower.tri(L035) | upper.tri(L035)]) ## Double check whether this code works.
+metadata_intra_stability[19,3]<-mean(L035[lower.tri(L035) | upper.tri(L035)])
+
+phylo_L041<-subset_samples(genus_005_rel_samples,Residentnumber=="L041")
+L041<-phyloseq::distance(phylo_L041, method="bray", type="samples")
+L041<-as.matrix(L041) ## To calculate the mean, need to exclude diagonal numbers, as all 0
+mean(L001[lower.tri(L041) | upper.tri(L041)]) ## Double check whether this code works.
+metadata_intra_stability[20,3]<-mean(L041[lower.tri(L041) | upper.tri(L041)])
+
+phylo_R001<-subset_samples(genus_005_rel_samples,Residentnumber=="R001")
+R001<-phyloseq::distance(phylo_R001, method="bray", type="samples")
+R001<-as.matrix(R001) ## To calculate the mean, need to exclude diagonal numbers, as all 0
+mean(R001[lower.tri(R001) | upper.tri(R001)]) ## Double check whether this code works.
+metadata_intra_stability[21,3]<-mean(R001[lower.tri(R001) | upper.tri(R001)])
+
+phylo_R002<-subset_samples(genus_005_rel_samples,Residentnumber=="R002")
+R002<-phyloseq::distance(phylo_R002, method="bray", type="samples")
+R002<-as.matrix(R002) ## To calculate the mean, need to exclude diagonal numbers, as all 0
+mean(R002[lower.tri(R002) | upper.tri(R002)]) ## Double check whether this code works.
+metadata_intra_stability[22,3]<-mean(R002[lower.tri(R002) | upper.tri(R002)])
+
+phylo_R003<-subset_samples(genus_005_rel_samples,Residentnumber=="R003")
+R003<-phyloseq::distance(phylo_R003, method="bray", type="samples")
+R003<-as.matrix(R003) ## To calculate the mean, need to exclude diagonal numbers, as all 0
+mean(R003[lower.tri(R003) | upper.tri(R003)]) ## Double check whether this code works.
+metadata_intra_stability[23,3]<-mean(R003[lower.tri(R003) | upper.tri(R003)])
+
+phylo_R004<-subset_samples(genus_005_rel_samples,Residentnumber=="R004")
+R004<-phyloseq::distance(phylo_R004, method="bray", type="samples")
+R004<-as.matrix(R004) ## To calculate the mean, need to exclude diagonal numbers, as all 0
+mean(R004[lower.tri(R004) | upper.tri(R004)]) ## Double check whether this code works.
+metadata_intra_stability[24,3]<-mean(R004[lower.tri(R004) | upper.tri(R004)])
+
+phylo_R007<-subset_samples(genus_005_rel_samples,Residentnumber=="R007")
+R007<-phyloseq::distance(phylo_R007, method="bray", type="samples")
+R007<-as.matrix(R007) ## To calculate the mean, need to exclude diagonal numbers, as all 0
+mean(R007[lower.tri(R007) | upper.tri(R007)]) ## Double check whether this code works.
+metadata_intra_stability[25,3]<-mean(R007[lower.tri(R007) | upper.tri(R007)])
+
+phylo_R020<-subset_samples(genus_005_rel_samples,Residentnumber=="R020")
+R020<-phyloseq::distance(phylo_R020, method="bray", type="samples")
+R020<-as.matrix(R020) ## To calculate the mean, need to exclude diagonal numbers, as all 0
+mean(R020[lower.tri(R020) | upper.tri(R020)]) ## Double check whether this code works.
+metadata_intra_stability[26,3]<-mean(R020[lower.tri(R020) | upper.tri(R020)])
+
+phylo_R023<-subset_samples(genus_005_rel_samples,Residentnumber=="R023")
+R023<-phyloseq::distance(phylo_R023, method="bray", type="samples")
+R023<-as.matrix(R023) ## To calculate the mean, need to exclude diagonal numbers, as all 0
+mean(R023[lower.tri(R023) | upper.tri(R023)]) ## Double check whether this code works.
+metadata_intra_stability[27,3]<-mean(R023[lower.tri(R023) | upper.tri(R023)])
+```
+## Test normality to see if we can use a t-test or non-paramteric
+```{r}
+with(metadata_intra_stability,shapiro.test(metadata_intra_stability$BC_diss[Ever_Colonized=="Ever"]))
+with(metadata_intra_stability,shapiro.test(metadata_intra_stability$BC_diss[Ever_Colonized=="Never"])) ## Both normal, so can just do a t-test
+metadata_intra_stability$BC_stability<-(1-metadata_intra_stability$BC_diss)
+
+Ever_colonized_stability<-ggplot(metadata_intra_stability)+
+  aes(x=Ever_Colonized,y=BC_stability,fill=Ever_Colonized)+
+  stat_compare_means(method="t.test",label.x=1.35)+
+  geom_violin()+
+  scale_fill_manual(values=c("orange", "blue"))+
+  geom_point(position="jitter")+
+  ggtitle("Intraindividual stability (Bray-Curtis)")+
+  labs(fill="Ever Colonised")+
+  xlab("")+
+  ylab("1 - Bray-Curtis")
+```
+##Intra-individual comparisons on transient colonisation. First select the individuals/samples which have a positive sample followed by a negative sample
+```{r}
+transient_pre_phyloseq<-subset_samples(genus_005_rel_samples,Transient_colonization_pre=="pre colonisation"|Transient_colonization_pre=="colonisation")
+metadata_perm<-meta(transient_pre_phyloseq)
+bray_matrix<-phyloseq::distance(transient_pre_phyloseq,method="bray")
+betadisper_test<-betadisper(bray_matrix,metadata_perm$Transient_colonization_pre)
+permutest(betadisper_test) ##Means we cannot reject that the groups have the same dispersions, so this gives us higher confidence that adonis rseults are real
+set.seed(1000) ## To ensure reproducible results
+adonis_result<-adonis(bray_matrix~Transient_colonization_pre,data=metadata_perm,permutations=999) 
+##Include strata argument to account for repeated measures
+adonis_result<-adonis(bray_matrix~Transient_colonization_pre,data=metadata_perm,permutations=999,strata=metadata_perm$Residentnumber) 
+```
+## Now select individuals/samples with first a positive sample, and then followed by a negative sample.
+```{r}
+transient_post_phyloseq<-subset_samples(genus_005_rel_samples,Transient_colonization_post=="post colonisation"|Transient_colonization_post=="colonisation")
+metadata_perm<-meta(transient_post_phyloseq)
+bray_matrix<-phyloseq::distance(transient_post_phyloseq,method="bray")
+betadisper_test<-betadisper(bray_matrix,metadata_perm$Transient_colonization_post)
+permutest(betadisper_test) ##Means we cannot reject that the groups have the same dispersions, so this gives us higher confidence that adonis rseults are real
+set.seed(1000) ## To ensure reproducible results
+adonis_result<-adonis(bray_matrix~Transient_colonization_post,data=metadata_perm,permutations=999) 
+##Include strata argument to account for repeated measures
+adonis_result<-adonis(bray_matrix~Transient_colonization_post,data=metadata_perm,permutations=999,strata=metadata_perm$Residentnumber) 
+```
+
