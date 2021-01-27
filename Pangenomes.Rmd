@@ -1,0 +1,49 @@
+---
+title: "Pangenomes"
+author: "QD+SN"
+output: html_document
+---
+
+## Load data and annotations for the heatmap
+```{r}
+pres_abs_table_short_filtered_test<-read_xlsx("pangenome_MDROs.xlsx")
+pres_abs_table_short_filtered_test<-mutate_all(pres_abs_table_short_filtered_test, function(x) as.numeric(as.character(x)))
+pres_abs_table_short_filtered_test<-as.data.frame(pres_abs_table_short_filtered_test)
+```
+
+## Add colors for heatmap (same as for the AMR heatmap)
+```{r}
+annot_df_filtered<-read_xlsx("annotation_mdro_isolates.xlsx")
+annot_df_filtered<-as.data.frame(annot_df_filtered)
+rownames(annot_df_filtered)<-annot_df_filtered$ID
+annot_df_filtered<-annot_df_filtered[,-1]
+
+annot_cols <- list(
+  ST = c('-' = "#001E09", '10' = "#C2FF99", '131' = "#C0B9B2", '2768' = "#CC0744",
+         '354' = "#A079BF", '847' = "#00846F"),
+  Ward = c('A' = "#FFD92F",'B' = "#A6D854",'C' = "#E78AC3",'E' = "#FC8D62",'F' = "#8DA0CB", 'G' = "#66C2A5"),
+  Residentnumber = c(L003 = "#000000", L010 = "#FFFF00", L011 = "#1CE6FF", L012 = "#FF34FF",
+                 L013 = "#FF4A46", L029 = "#A30059", L033 = "#FFDBE5", L035 = "#63FFAC",
+                 R002 = "#004D43", R003 = "#8FB0FF", R004 = "#997D87"),
+  Time_point = c("1"="#CCFFCC","2"="#66FF66","3"="#00FF00","4"="#009900"))
+```
+
+
+## Now fully annotate the heatmap. This is also the final figure for the manuscript.
+```{r}
+accessory_genome<-pheatmap(as.matrix(pres_abs_table_short_filtered_test),
+         main = "Gene presence and absence clustering in E. coli strains (5057 non-core genes)",
+         clustering_method = "average",
+         treeheight_row = 0,
+         color = c("white", "black"),
+         legend = FALSE,
+         clustering_distance_cols = "euclidean",
+         annotation_col = subset(annot_df_filtered, select=c("Residentnumber", "Time_point", "Ward", "ST")),
+         annotation_colors = annot_cols,
+         show_rownames = FALSE)
+
+ggsave(file="Fig2_accessory_genome.png", plot=accessory_genome, width=10, height=10,dpi=1200) ##.svg would become way too large.
+
+ggsave(file="Fig2_accessory_genome.pdf", plot=accessory_genome, width=10, height=10,dpi=1200) ##.svg would become way too large.
+```
+
