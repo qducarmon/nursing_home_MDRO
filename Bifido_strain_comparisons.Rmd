@@ -1,0 +1,83 @@
+---
+title: "Bifido_strain_comparisons"
+author: "QD+SN"
+output: html_document
+---
+## Load all files which were given as output by comparing Bifidobacterium longum strains using the pyANI tool. For a detailed description of assembly etc., please see the paper.
+```{r}
+longum_alignment_coverage<-read.table("longum_ANIm_alignment_coverage.tab")
+longum_alignment_lengths<-read.table("longum_ANIm_alignment_lengths.tab")
+longum_ANIm_percentage_identity<-read.table("longum_ANIm_percentage_identity.tab")
+```
+##Rename so that names include resident number and timepoint. Start with longum_alignment_lengths file
+```{r}
+longum_alignment_lengths<-dplyr::rename(longum_alignment_lengths,L001_2=X103997.001_L001.Bifidobacterium_longum.scaffolds,L001_4=X103997.002_L001.Bifidobacterium_longum.scaffolds,L006_2=X103997.003_L001.Bifidobacterium_longum.scaffolds,L006_4=X103997.004_L001.Bifidobacterium_longum.scaffolds,L028_2=X103997.005_L001.Bifidobacterium_longum.scaffolds,L028_4=X103997.006_L001.Bifidobacterium_longum.scaffolds,L031_2=X103997.007_L001.Bifidobacterium_longum.scaffolds,L031_4=X103997.008_L001.Bifidobacterium_longum.scaffolds,R003_2=X103997.009_L001.Bifidobacterium_longum.scaffolds,R003_4=X103997.010_L001.Bifidobacterium_longum.scaffolds,NC_004307_REP=NC_004307.REP,NC_004943_PLAS=NC_004943.PLAS,NC_011593_REF=NC_011593.REF) ## In addition, 001_L002 and 004_L002 can be removed as they were sequenced on a different lane
+longum_alignment_lengths<-dplyr::select(longum_alignment_lengths,-c(X103997.001_L002.Bifidobacterium_longum.scaffolds,X103997.004_L002.Bifidobacterium_longum.scaffolds)) ## Now also delete the relevant rows
+rownames(longum_alignment_lengths)
+longum_alignment_lengths<-longum_alignment_lengths[-c(6,8),]
+##Have to rename the rows as well to get a nice matrix
+longum_alignment_lengths<-rowrename(longum_alignment_lengths,"103997-001_L001-Bifidobacterium_longum-scaffolds"="L001_2","103997-002_L001-Bifidobacterium_longum-scaffolds"="L001_4","103997-003_L001-Bifidobacterium_longum-scaffolds"="L006_2","103997-004_L001-Bifidobacterium_longum-scaffolds"="L006_4","103997-005_L001-Bifidobacterium_longum-scaffolds"="L028_2","103997-006_L001-Bifidobacterium_longum-scaffolds"="L028_4","103997-007_L001-Bifidobacterium_longum-scaffolds"="L031_2","103997-008_L001-Bifidobacterium_longum-scaffolds"="L031_4","103997-009_L001-Bifidobacterium_longum-scaffolds"="R003_2","103997-010_L001-Bifidobacterium_longum-scaffolds"="R003_4","NC_004307-REP"="NC_004307_REP","NC_004943-PLAS"="NC_004943_PLAS","NC_011593-REF"="NC_011593_REF")
+## For plotting purposes it will be much easier to convert to a long data format.
+longum_alignment_lengths$names<-rownames(longum_alignment_lengths)
+melted_longum_alignment_lengths<-melt(longum_alignment_lengths)
+##Should probably re-order columns and rows so that samples are presented in a logical order, and all reference sequences separately (towards the end)
+unique(melted_longum_alignment_lengths$names)
+unique(melted_longum_alignment_lengths$variable)
+melted_longum_alignment_lengths$names<-factor(melted_longum_alignment_lengths$names,levels=c("L001_2","L001_4","L006_2","L006_4","L028_2","L028_4","L031_2","L031_4","R003_2","R003_4","NC_004307_REP","NC_004943_PLAS","NC_011593_REF","NZ_CP008885","NZ_CP026999","NZ_CP048001"))
+melted_longum_alignment_lengths$variable<-factor(melted_longum_alignment_lengths$variable,levels=c("L001_2","L001_4","L006_2","L006_4","L028_2","L028_4","L031_2","L031_4","R003_2","R003_4","NC_004307_REP","NC_004943_PLAS","NC_011593_REF","NZ_CP008885","NZ_CP026999","NZ_CP048001"))
+```
+##Now make a heatmap-like plot. In the diagonals you can see the retrieved genome length of B. longum for each sample and the lengths for the references sequences. These have been added as a supplementary table, as this figure would probably be more confusing than clarifying.
+```{r}
+alignments_lengths<-ggplot(melted_longum_alignment_lengths)+
+  aes(x=names,y=variable,fill=value)+
+  scale_fill_gradient(low ="white", high = "steelblue",name="Alignment_length")+
+  xlab("")+ 
+  ylab("")+ 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1,size = 9, hjust = 1))+
+  ggtitle("Alignment_lengths")+
+  geom_tile()+
+  theme(text = element_text(size=14))+
+  theme(axis.text.x=element_text(size=11))+
+  theme(legend.key.size = unit(1,"line"))+
+  geom_text(aes(names, variable, label = value), color = "black", size = 3)
+ggsave(file="alignments_lengths.svg", plot=alignments_lengths, width=12, height=8,dpi=1600)
+```
+##Now do the same for ANI, as this should be the most important plot
+```{r}
+colnames(longum_ANIm_percentage_identity)
+longum_ANIm_percentage_identity<-dplyr::rename(longum_ANIm_percentage_identity,L001_2=X103997.001_L001.Bifidobacterium_longum.scaffolds,L001_4=X103997.002_L001.Bifidobacterium_longum.scaffolds,L006_2=X103997.003_L001.Bifidobacterium_longum.scaffolds,L006_4=X103997.004_L001.Bifidobacterium_longum.scaffolds,L028_2=X103997.005_L001.Bifidobacterium_longum.scaffolds,L028_4=X103997.006_L001.Bifidobacterium_longum.scaffolds,L031_2=X103997.007_L001.Bifidobacterium_longum.scaffolds,L031_4=X103997.008_L001.Bifidobacterium_longum.scaffolds,R003_2=X103997.009_L001.Bifidobacterium_longum.scaffolds,R003_4=X103997.010_L001.Bifidobacterium_longum.scaffolds,NC_004307_REP=NC_004307.REP,NC_004943_PLAS=NC_004943.PLAS,NC_011593_REF=NC_011593.REF) ## In addition, 001_L002 and 004_L002 can be removed as they were sequenced on a different lane
+longum_ANIm_percentage_identity<-dplyr::select(longum_ANIm_percentage_identity,-c(X103997.001_L002.Bifidobacterium_longum.scaffolds,X103997.004_L002.Bifidobacterium_longum.scaffolds)) ## Now also delete the relevant rows
+rownames(longum_ANIm_percentage_identity)
+longum_ANIm_percentage_identity<-longum_ANIm_percentage_identity[-c(6,8),]
+##Have to rename the rows as well to get a nice matrix
+longum_ANIm_percentage_identity<-rowrename(longum_ANIm_percentage_identity,"103997-001_L001-Bifidobacterium_longum-scaffolds"="L001_2","103997-002_L001-Bifidobacterium_longum-scaffolds"="L001_4","103997-003_L001-Bifidobacterium_longum-scaffolds"="L006_2","103997-004_L001-Bifidobacterium_longum-scaffolds"="L006_4","103997-005_L001-Bifidobacterium_longum-scaffolds"="L028_2","103997-006_L001-Bifidobacterium_longum-scaffolds"="L028_4","103997-007_L001-Bifidobacterium_longum-scaffolds"="L031_2","103997-008_L001-Bifidobacterium_longum-scaffolds"="L031_4","103997-009_L001-Bifidobacterium_longum-scaffolds"="R003_2","103997-010_L001-Bifidobacterium_longum-scaffolds"="R003_4","NC_004307-REP"="NC_004307_REP","NC_004943-PLAS"="NC_004943_PLAS","NC_011593-REF"="NC_011593_REF")
+## For plotting purposes it will be much easier to convert to a long data format.
+longum_ANIm_percentage_identity$names<-rownames(longum_ANIm_percentage_identity)
+melted_longum_ANIm_percentage_identity<-melt(longum_ANIm_percentage_identity)
+##Should probably re-order columns and rows so that samples are presented in a logical order, and all reference sequences separately (towards the end)
+unique(melted_longum_ANIm_percentage_identity$names)
+unique(melted_longum_ANIm_percentage_identity$variable)
+melted_longum_ANIm_percentage_identity$names<-factor(longum_ANIm_percentage_identity$names,levels=c("L001_2","L001_4","L006_2","L006_4","L028_2","L028_4","L031_2","L031_4","R003_2","R003_4","NC_004307_REP","NC_004943_PLAS","NC_011593_REF","NZ_CP008885","NZ_CP026999","NZ_CP048001"))
+melted_longum_ANIm_percentage_identity$variable<-factor(melted_longum_ANIm_percentage_identity$variable,levels=c("L001_2","L001_4","L006_2","L006_4","L028_2","L028_4","L031_2","L031_4","R003_2","R003_4","NC_004307_REP","NC_004943_PLAS","NC_011593_REF","NZ_CP008885","NZ_CP026999","NZ_CP048001"))
+```
+##Make a heatmap fot average nucleotide identity
+```{r}
+percentage_ani<-ggplot(melted_longum_ANIm_percentage_identity)+
+  aes(x=names,y=variable,fill=value)+
+  #scale_fill_gradient2(low ="dodgerblue4", high ="yellow", mid ="white",midpoint = 0.7, limits = c(0,1),space="Lab",name="Percentage_average_nucleotide_identity")+ ##Unfortunately this function does not do the same thing as in R 3.5.1.
+  scale_fill_gradientn(colors=c("white","paleturquoise", "royalblue3"),breaks=c(0,0.90,0.99,1),name="Color_Key",values=c(0,0.99,1),labels=NULL)+ ##Make a break at 0.99, as above this level you can clearly see extremely similar strains within individuals
+  xlab("")+ 
+  ylab("")+ 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1,size = 9, hjust = 1))+
+  #ggtitle("Percentage_average_nucleotide_identity")+
+  geom_tile()+
+  geom_text(aes(names, variable, label = round(value,digits=3)), color = "black", size = 4)+
+  theme(text = element_text(size=14))+
+  theme(axis.text.x=element_text(size=11))+
+  theme(legend.key.size = unit(1,"line"))+
+  guides(fill=FALSE)
+
+metagenome_composition_B_longum<-ggarrange(metagenome_composition,percentage_ani,labels=c("A","B",ncol=1,nrow=2))
+ggsave(file="Fig7_metagenome_composition_B_longum.svg", plot=metagenome_composition_B_longum, width=20, height=12,dpi=1600)
+```
+
