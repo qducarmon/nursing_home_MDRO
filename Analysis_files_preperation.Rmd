@@ -1,0 +1,113 @@
+---
+title: "Analysis_files_preperation"
+author: "QD"
+output: html_document
+---
+##Load necessary libraries
+```{r}
+library(phyloseq)
+library(tidyverse)
+library(DESeq2)
+library(ggpubr)
+library(readxl)
+library(microbiome)
+library(reshape2)
+library(metagMisc)
+library(glue)
+library(tsnemicrobiota)
+library(forcats)
+library(vegan)
+library(cowplot)
+library(pheatmap)
+library(dendextend)
+library(memisc)
+library(remotes)
+library(lme4)
+library(lmerTest)
+library(geepack)
+library(epiDisplay)
+library(scales)
+library(RColorBrewer)
+library(pheatmap)
+```
+## Load metadata and clarify some variables. 
+```{r}
+metadata<-read_excel("20200323_Master_Metadata_Samples.xlsx")
+metadata_epi<-metadata
+metadata_epi<-subset(metadata_epi,Sample_type=="Sample") ##AS controls for microbiota are not needed for epidemiology
+metadata_16S<-metadata
+metadata_16S$MDRO_cultured <- factor(metadata_16S$MDRO_cultured, levels = c(0,1), labels = c("No","Yes"))
+metadata_16S$Ever_Colonized <- fct_relevel(metadata_16S$Ever_Colonized, "Ever", after = Inf)
+metadata_16S$Transient_colonization_pre<-as.factor(metadata_16S$Transient_colonization_pre)
+metadata_16S$Transient_colonization_post<-as.factor(metadata_16S$Transient_colonization_post)
+```
+##Biom file 16S data for OTU Table and taxonomy
+```{r}
+NH_biom<-import_biom("biom_005.biom") ##Called _005 due to percentage filtering described in Methods
+# extract OTU table from biom data and set as data.frame because biom data is an S4 object on which you it's annoying to apply functions such as gsub
+NH_otu<-abundances(NH_biom)
+NH_otu<-as.data.frame(NH_otu)
+colnames(NH_otu)<-gsub("HHNCTDSXX-" , "" , colnames(NH_otu))
+colnames(NH_otu)<-gsub("........-........-....-" , "" , colnames(NH_otu))
+colnames(NH_otu)<-gsub("-R1.fastq.gz.adapter-removed.fastq.with-wrong-barcodes.fastq", "",colnames(NH_otu))
+#extract taxonomy table, samples dataset and assign object for tax, samples, OTU to merge
+NH_taxonomy<-tax_table(NH_biom)
+#set GS_ID as rowname before merging:
+rownames(metadata_16S)<-metadata_16S$GS_ID
+metadata_16S<-as.data.frame(metadata_16S)
+tax = tax_table(NH_taxonomy)
+samples = sample_data(metadata_16S)
+otu = otu_table(NH_otu, taxa_are_rows = TRUE)
+#merge
+OTU_005 <- phyloseq(tax, samples, otu)
+colnames(tax_table(OTU_005))<-c("Kingdom","Phylum","Class","Order","Family","Genus")
+```
+##Now create relative abundance phyloseq objects and genus level phyloseq objects. In addition, make sample-based objects only. These will come in  handy for future analyses
+```{r}
+OTU_005_rel<-microbiome::transform(OTU_005,transform="compositional")
+genus_005<-tax_glom(OTU_005,taxrank=rank_names(OTU_005)[6],NArm=F)
+genus_005_rel<-microbiome::transform(genus_005,"compositional")
+OTU_005_samples<-subset_samples(OTU_005, Sample_type=="Sample")
+summarize_phyloseq(OTU_005_samples) ## Just to inspect the entire phyloseq of the samples
+OTU_005_rel_samples<-subset_samples(OTU_005_rel, Sample_type=="Sample")
+genus_005_samples<-subset_samples(genus_005, Sample_type=="Sample")
+genus_005_rel_samples<-subset_samples(genus_005_rel, Sample_type=="Sample")
+```
+
+##Make phyloseq objects for the metagenomes. This is output from the mOTUs tool (v2.5) in the ngless environment. In addition, the motus_full_taxonomy.txt table was extracted from mOTUs itself. This is necessary to build a proper phyloseq object.
+```{r}
+mOTUs<-read.delim2("NH_motus2_5_relative_abundance.tsv")
+taxonomy_mOTUs<-read.delim2("motus_full_taxonomy.txt")
+rownames(taxonomy_mOTUs)<-taxonomy_mOTUs$mOTU
+taxonomy_mOTUs$Species_with_mOTUnr<-paste(taxonomy_mOTUs$species,taxonomy_mOTUs$mOTU, sep=" [")
+taxonomy_mOTUs$Species_with_mOTUnr[-length(taxonomy_mOTUs$Species_with_mOTUnr)] <- paste0(taxonomy_mOTUs$Species_with_mOTUnr[-length(taxonomy_mOTUs$Species_with_mOTUnr)], ']')
+taxonomy_mOTUs<-taxonomy_mOTUs[,-c(1,9)]
+mOTUs$X<-as.character(mOTUs$X)
+mOTUs$X<-plyr::revalue(mOTUs$X,c("-1"="[meta_-1]")) ##To make sure the non-assigned reads will also be captured by the regular expressions below.
+mOTUs$X<-unlist(str_extract_all(mOTUs$X,"\\[(?:ref|meta)(.*?)\\]"))
+mOTUs$X<-plyr::revalue(mOTUs$X,c("[meta_-1]"="-1"))
+mOTUs$X<-gsub("\\]","",mOTUs$X)
+mOTUs$X<-gsub("\\[","",mOTUs$X) ##These were some ugly regex to make sure everything is in a proper format.
+rownames(mOTUs)<-mOTUs$X
+mOTUs<-mOTUs[,-1]
+mOTUs$Row_names<-rownames(mOTUs)
+colnames(mOTUs)<-gsub("H75MHDSXY_","",colnames(mOTUs))
+colnames(mOTUs)<-gsub("_.*","",colnames(mOTUs))
+metadata_metagenomes<-read_excel("20200324_Master_Metadata_Metagenomes_only.xlsx")
+metadata_metagenomes$GS_ID<-gsub("-","\\.",metadata_metagenomes$GS_ID)
+rownames(metadata_metagenomes)<-metadata_metagenomes$GS_ID
+metadata_metagenomes<-as.data.frame(metadata_metagenomes)
+## Merge into phyloseq object
+otumat<-as.matrix(mOTUs)
+class(otumat)<-"numeric"
+class(taxonomy_mOTUs)
+taxonomy_table<-as.matrix(taxonomy_mOTUs)
+OTU=otu_table(otumat,taxa_are_rows=TRUE)
+TAX=tax_table(taxonomy_table)
+sampledata<-sample_data(metadata_metagenomes)
+physeq_metagenomes<-phyloseq(OTU,TAX,sampledata)
+physeq_metagenomes_filtered<-phyloseq_filter_taxa_tot_fraction(physeq_metagenomes,frac=0.00005) ## filter all taxa that do not have at least 0.005% abundance. This step is optional though and will not alter results
+physeq_metagenomes_filtered_samples<-subset_samples(physeq_metagenomes_filtered, Sample_type=="Sample")
+physeq_metagenomes_filtered_samples@tax_table@.Data<- physeq_metagenomes_filtered_samples@tax_table@.Data %>% replace_na("Not_classified")
+```
+
