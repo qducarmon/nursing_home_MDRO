@@ -1,0 +1,216 @@
+---
+title: "DESeq2"
+author: "QD"
+output: html_document
+---
+## Here differential abundance analysis with DESeq2 will be performed. First, filter genus table such that genera should be present in at least 25% of samples
+```{r}
+set.seed(1000)
+genus_25 <- core(genus_005_samples,detection=0, prevalence = 25/100)
+```
+## To account for repeated measures, compare per time point (so basically just stratify per time point)
+```{r}
+genus_25_tp1<-subset_samples(genus_25,Time_point=="1")
+DESeq2_test = phyloseq_to_deseq2(genus_25_tp1, ~ MDRO_cultured)
+DESeq2_test = DESeq(DESeq2_test, test="Wald", fitType="parametric")
+res = results(DESeq2_test, cooksCutoff = FALSE)
+alpha = 0.1 
+sigtab = res[which(res$padj < alpha), ]
+sigtab = cbind(as(sigtab, "data.frame"), as(tax_table(genus_25_tp1)[rownames(sigtab), ], "matrix"))
+head(sigtab)
+
+x = tapply(sigtab$log2FoldChange, sigtab$Phylum, function(x) max(x))
+x = sort(x, TRUE)
+sigtab$Phylum = factor(as.character(sigtab$Phylum), levels=names(x))
+# Genus order
+x = tapply(sigtab$log2FoldChange, sigtab$Genus, function(x) max(x))
+x = sort(x, TRUE)
+sigtab$Genus = factor(as.character(sigtab$Genus), levels=names(x))
+ggplot(sigtab, aes(x=Genus, y=log2FoldChange, color=Phylum)) + geom_point(size=6) +theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust=0.5))
+
+x = tapply(sigtab$log2FoldChange, sigtab$Genus, function(x) max(x))
+x = sort(x, TRUE)
+sigtab$Genus = factor(as.character(sigtab$Genus), levels=names(x))
+ggplot(sigtab, aes(x=Genus, y=log2FoldChange, color="MDRO.positive")) + geom_point(size=6) + 
+  theme(axis.text.x = element_text(angle = -45, hjust = 0, vjust=0.5)) + labs(title = "Differential abundance between MDRO positive and negative fecal samples", x="Genus") + guides(color=guide_legend("Colonization status")) + scale_color_hue(labels = c("MDRO positive", "MDRO negative"))
+
+sigtab_MDRO_positive_vs_negative_samples<-sigtab
+sigtab_MDRO_positive_vs_negative_samples<-dplyr::select(sigtab_MDRO_positive_vs_negative_samples,-c(baseMean,lfcSE,stat,pvalue,Kingdom))
+sigtab_MDRO_positive_vs_negative_samples$Phylum<-gsub("p__","",sigtab_MDRO_positive_vs_negative_samples$Phylum)
+sigtab_MDRO_positive_vs_negative_samples$Class<-gsub("c__","",sigtab_MDRO_positive_vs_negative_samples$Class)
+sigtab_MDRO_positive_vs_negative_samples$Order<-gsub("o__","",sigtab_MDRO_positive_vs_negative_samples$Order)
+sigtab_MDRO_positive_vs_negative_samples$Family<-gsub("f__","",sigtab_MDRO_positive_vs_negative_samples$Family)
+sigtab_MDRO_positive_vs_negative_samples$Genus<-gsub("g__","",sigtab_MDRO_positive_vs_negative_samples$Genus)
+##Now order the data frame on log2fold change and adjusted p-value
+sigtab_MDRO_positive_vs_negative_samples<-sigtab_MDRO_positive_vs_negative_samples[order(sigtab_MDRO_positive_vs_negative_samples$log2FoldChange, sigtab_MDRO_positive_vs_negative_samples$padj),]
+sigtab_MDRO_positive_vs_negative_samples$Timepoint<-"Time point 1"
+sigtab_MDRO_positive_vs_negative_samples$otu_nr<-rownames(sigtab_MDRO_positive_vs_negative_samples)
+write.csv(sigtab_MDRO_positive_vs_negative_samples,"Timepoint1_deseq2.csv", row.names = FALSE)
+
+```
+## Timepoint 2
+```{r}
+genus_25_tp2<-subset_samples(genus_25,Time_point=="2")
+DESeq2_test = phyloseq_to_deseq2(genus_25_tp2, ~ MDRO_cultured)
+DESeq2_test = DESeq(DESeq2_test, test="Wald", fitType="parametric")
+res = results(DESeq2_test, cooksCutoff = FALSE)
+alpha = 0.1 
+sigtab = res[which(res$padj < alpha), ]
+sigtab = cbind(as(sigtab, "data.frame"), as(tax_table(genus_25_tp2)[rownames(sigtab), ], "matrix"))
+head(sigtab)
+
+x = tapply(sigtab$log2FoldChange, sigtab$Phylum, function(x) max(x))
+x = sort(x, TRUE)
+sigtab$Phylum = factor(as.character(sigtab$Phylum), levels=names(x))
+# Genus order
+x = tapply(sigtab$log2FoldChange, sigtab$Genus, function(x) max(x))
+x = sort(x, TRUE)
+sigtab$Genus = factor(as.character(sigtab$Genus), levels=names(x))
+ggplot(sigtab, aes(x=Genus, y=log2FoldChange, color=Phylum)) + geom_point(size=6) +theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust=0.5))
+
+x = tapply(sigtab$log2FoldChange, sigtab$Genus, function(x) max(x))
+x = sort(x, TRUE)
+sigtab$Genus = factor(as.character(sigtab$Genus), levels=names(x))
+ggplot(sigtab, aes(x=Genus, y=log2FoldChange, color="MDRO.positive")) + geom_point(size=6) + 
+  theme(axis.text.x = element_text(angle = -45, hjust = 0, vjust=0.5)) + labs(title = "Differential abundance between MDRO positive and negative fecal samples", x="Genus") + guides(color=guide_legend("Colonization status")) + scale_color_hue(labels = c("MDRO positive", "MDRO negative"))
+
+sigtab_MDRO_positive_vs_negative_samples<-sigtab
+sigtab_MDRO_positive_vs_negative_samples<-dplyr::select(sigtab_MDRO_positive_vs_negative_samples,-c(baseMean,lfcSE,stat,pvalue,Kingdom))
+sigtab_MDRO_positive_vs_negative_samples$Phylum<-gsub("p__","",sigtab_MDRO_positive_vs_negative_samples$Phylum)
+sigtab_MDRO_positive_vs_negative_samples$Class<-gsub("c__","",sigtab_MDRO_positive_vs_negative_samples$Class)
+sigtab_MDRO_positive_vs_negative_samples$Order<-gsub("o__","",sigtab_MDRO_positive_vs_negative_samples$Order)
+sigtab_MDRO_positive_vs_negative_samples$Family<-gsub("f__","",sigtab_MDRO_positive_vs_negative_samples$Family)
+sigtab_MDRO_positive_vs_negative_samples$Genus<-gsub("g__","",sigtab_MDRO_positive_vs_negative_samples$Genus)
+##Now order the data frame on log2fold change and adjusted p-value
+sigtab_MDRO_positive_vs_negative_samples<-sigtab_MDRO_positive_vs_negative_samples[order(sigtab_MDRO_positive_vs_negative_samples$log2FoldChange, sigtab_MDRO_positive_vs_negative_samples$padj),]
+sigtab_MDRO_positive_vs_negative_samples$Timepoint<-"Time point 2"
+sigtab_MDRO_positive_vs_negative_samples$otu_nr<-rownames(sigtab_MDRO_positive_vs_negative_samples)
+write.csv(sigtab_MDRO_positive_vs_negative_samples,"Timepoint2_deseq2.csv", row.names = FALSE)
+```
+
+```{r}
+genus_25_tp3<-subset_samples(genus_25,Time_point=="3")
+DESeq2_test = phyloseq_to_deseq2(genus_25_tp3, ~ MDRO_cultured)
+DESeq2_test = DESeq(DESeq2_test, test="Wald", fitType="parametric")
+res = results(DESeq2_test, cooksCutoff = FALSE)
+alpha = 0.1 
+sigtab = res[which(res$padj < alpha), ]
+sigtab = cbind(as(sigtab, "data.frame"), as(tax_table(genus_25_tp3)[rownames(sigtab), ], "matrix"))
+head(sigtab)
+
+x = tapply(sigtab$log2FoldChange, sigtab$Phylum, function(x) max(x))
+x = sort(x, TRUE)
+sigtab$Phylum = factor(as.character(sigtab$Phylum), levels=names(x))
+# Genus order
+x = tapply(sigtab$log2FoldChange, sigtab$Genus, function(x) max(x))
+x = sort(x, TRUE)
+sigtab$Genus = factor(as.character(sigtab$Genus), levels=names(x))
+ggplot(sigtab, aes(x=Genus, y=log2FoldChange, color=Phylum)) + geom_point(size=6) +theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust=0.5))
+
+x = tapply(sigtab$log2FoldChange, sigtab$Genus, function(x) max(x))
+x = sort(x, TRUE)
+sigtab$Genus = factor(as.character(sigtab$Genus), levels=names(x))
+ggplot(sigtab, aes(x=Genus, y=log2FoldChange, color="MDRO.positive")) + geom_point(size=6) + 
+  theme(axis.text.x = element_text(angle = -45, hjust = 0, vjust=0.5)) + labs(title = "Differential abundance between MDRO positive and negative fecal samples", x="Genus") + guides(color=guide_legend("Colonization status")) + scale_color_hue(labels = c("MDRO positive", "MDRO negative"))
+
+sigtab_MDRO_positive_vs_negative_samples<-sigtab
+sigtab_MDRO_positive_vs_negative_samples<-dplyr::select(sigtab_MDRO_positive_vs_negative_samples,-c(baseMean,lfcSE,stat,pvalue,Kingdom))
+sigtab_MDRO_positive_vs_negative_samples$Phylum<-gsub("p__","",sigtab_MDRO_positive_vs_negative_samples$Phylum)
+sigtab_MDRO_positive_vs_negative_samples$Class<-gsub("c__","",sigtab_MDRO_positive_vs_negative_samples$Class)
+sigtab_MDRO_positive_vs_negative_samples$Order<-gsub("o__","",sigtab_MDRO_positive_vs_negative_samples$Order)
+sigtab_MDRO_positive_vs_negative_samples$Family<-gsub("f__","",sigtab_MDRO_positive_vs_negative_samples$Family)
+sigtab_MDRO_positive_vs_negative_samples$Genus<-gsub("g__","",sigtab_MDRO_positive_vs_negative_samples$Genus)
+##Now order the data frame on log2fold change and adjusted p-value
+sigtab_MDRO_positive_vs_negative_samples<-sigtab_MDRO_positive_vs_negative_samples[order(sigtab_MDRO_positive_vs_negative_samples$log2FoldChange, sigtab_MDRO_positive_vs_negative_samples$padj),]
+sigtab_MDRO_positive_vs_negative_samples$Timepoint<-"Time point 3"
+sigtab_MDRO_positive_vs_negative_samples$otu_nr<-rownames(sigtab_MDRO_positive_vs_negative_samples)
+write.csv(sigtab_MDRO_positive_vs_negative_samples,"Timepoint3_deseq2.csv", row.names = FALSE)
+```
+
+```{r}
+genus_25_tp4<-subset_samples(genus_25,Time_point=="4")
+DESeq2_test = phyloseq_to_deseq2(genus_25_tp4, ~ MDRO_cultured)
+DESeq2_test = DESeq(DESeq2_test, test="Wald", fitType="parametric")
+res = results(DESeq2_test, cooksCutoff = FALSE)
+alpha = 0.1 
+sigtab = res[which(res$padj < alpha), ]
+sigtab = cbind(as(sigtab, "data.frame"), as(tax_table(genus_25_tp4)[rownames(sigtab), ], "matrix"))
+head(sigtab)
+
+x = tapply(sigtab$log2FoldChange, sigtab$Phylum, function(x) max(x))
+x = sort(x, TRUE)
+sigtab$Phylum = factor(as.character(sigtab$Phylum), levels=names(x))
+# Genus order
+x = tapply(sigtab$log2FoldChange, sigtab$Genus, function(x) max(x))
+x = sort(x, TRUE)
+sigtab$Genus = factor(as.character(sigtab$Genus), levels=names(x))
+ggplot(sigtab, aes(x=Genus, y=log2FoldChange, color=Phylum)) + geom_point(size=6) +theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust=0.5))
+
+x = tapply(sigtab$log2FoldChange, sigtab$Genus, function(x) max(x))
+x = sort(x, TRUE)
+sigtab$Genus = factor(as.character(sigtab$Genus), levels=names(x))
+ggplot(sigtab, aes(x=Genus, y=log2FoldChange, color="MDRO.positive")) + geom_point(size=6) + 
+  theme(axis.text.x = element_text(angle = -45, hjust = 0, vjust=0.5)) + labs(title = "Differential abundance between MDRO positive and negative fecal samples", x="Genus") + guides(color=guide_legend("Colonization status")) + scale_color_hue(labels = c("MDRO positive", "MDRO negative"))
+
+sigtab_MDRO_positive_vs_negative_samples<-sigtab
+sigtab_MDRO_positive_vs_negative_samples<-dplyr::select(sigtab_MDRO_positive_vs_negative_samples,-c(baseMean,lfcSE,stat,pvalue,Kingdom))
+sigtab_MDRO_positive_vs_negative_samples$Phylum<-gsub("p__","",sigtab_MDRO_positive_vs_negative_samples$Phylum)
+sigtab_MDRO_positive_vs_negative_samples$Class<-gsub("c__","",sigtab_MDRO_positive_vs_negative_samples$Class)
+sigtab_MDRO_positive_vs_negative_samples$Order<-gsub("o__","",sigtab_MDRO_positive_vs_negative_samples$Order)
+sigtab_MDRO_positive_vs_negative_samples$Family<-gsub("f__","",sigtab_MDRO_positive_vs_negative_samples$Family)
+sigtab_MDRO_positive_vs_negative_samples$Genus<-gsub("g__","",sigtab_MDRO_positive_vs_negative_samples$Genus)
+##Now order the data frame on log2fold change and adjusted p-value
+sigtab_MDRO_positive_vs_negative_samples<-sigtab_MDRO_positive_vs_negative_samples[order(sigtab_MDRO_positive_vs_negative_samples$log2FoldChange, sigtab_MDRO_positive_vs_negative_samples$padj),]
+sigtab_MDRO_positive_vs_negative_samples$Timepoint<-"Time point 4"
+sigtab_MDRO_positive_vs_negative_samples$otu_nr<-rownames(sigtab_MDRO_positive_vs_negative_samples)
+write.csv(sigtab_MDRO_positive_vs_negative_samples,"Timepoint4_deseq2.csv", row.names = FALSE)
+
+## Since Phascolarctobacterium has such a big log2fold change, quickly check visually
+genus_25_tp4_rel<-microbiome::transform(genus_25_tp4,"compositional")
+check_phasco<-psmelt(genus_25_tp4_rel)
+check_phasco<-subset(check_phasco,OTU=="322282315")
+```
+## Visualize the different time point results from DESeq2. Here a p-value of 0.1 has been used for visualization purposes, since the sample size is quite limited
+```{r}
+all_timepoints_deseq2<-read_excel("Timepoints_combined_deseq2.xlsx")
+all_timepoints_deseq2$Genus_OTU_nr<-paste(all_timepoints_deseq2$Genus,all_timepoints_deseq2$otu_nr,sep="_")
+fct_relevel(all_timepoints_deseq2$Genus_OTU_nr)
+my_palette<-colorRampPalette(rev(brewer.pal(n = 7, name ="RdYlBu")))(100) ## Filter out the NA, as it doesn't say anything
+all_timepoints_deseq2<-subset(all_timepoints_deseq2,otu_nr!="322282318") ## Since we do not want to visualize unassigned reads.
+deseq2_heatmap<-ggplot(all_timepoints_deseq2)+
+  aes(x=Timepoint,y=forcats::fct_rev(factor(Genus)),fill=log2FoldChange)+
+  geom_tile(colour="black")+
+  geom_text(aes(label=round(padj,digits=3)))+ 
+  scale_fill_gradientn(colours=my_palette,na.value="white")+
+  labs(fill="Log2 Fold Change")+
+  theme_classic()+
+  ylab("Genus")+
+  xlab("")+
+  theme(axis.text.y = element_text(face = "italic"))
+  
+ggsave(file="FigS4_heatmap_deseq2.svg", plot=deseq2_heatmap, width=12, height=8,dpi=1600)
+```
+
+## Compare the intra-individual groups
+```{r}
+genus_25_transient_pre<-subset_samples(genus_25,Transient_colonization_pre=="pre colonisation"|Transient_colonization_pre=="colonisation")
+DESeq2_test = phyloseq_to_deseq2(genus_25_transient_pre, ~ Residentnumber + Transient_colonization_pre) ## Include Residentnumber for paired analysis
+DESeq2_test = DESeq(DESeq2_test, test="Wald", fitType="parametric")
+res = results(DESeq2_test, cooksCutoff = FALSE)
+alpha = 0.05 ##
+sigtab = res[which(res$padj < alpha), ]
+sigtab = cbind(as(sigtab, "data.frame"), as(tax_table(genus_25_transient_pre)[rownames(sigtab), ], "matrix"))
+head(sigtab) ## So there are simply no differences when correcting for individual, lowest p-value is 0.77......
+```
+##Now intra-individual group 
+```{r}
+genus_25_transient_post<-subset_samples(genus_25,Transient_colonization_post=="post colonisation"|Transient_colonization_post=="colonisation")
+DESeq2_test = phyloseq_to_deseq2(genus_25_transient_post, ~ Residentnumber + Transient_colonization_post) ## Include Residentnumber for paired analysis
+DESeq2_test = DESeq(DESeq2_test, test="Wald", fitType="parametric")
+res = results(DESeq2_test, cooksCutoff = FALSE)
+alpha = 0.05 ##
+sigtab = res[which(res$padj < alpha), ]
+sigtab = cbind(as(sigtab, "data.frame"), as(tax_table(genus_25_transient_post)[rownames(sigtab), ], "matrix"))
+head(sigtab) ## So there are simply no differences when correcting for individual, lowest p-value is 0.98......
+```
+
