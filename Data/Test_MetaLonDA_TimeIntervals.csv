@@ -1,0 +1,15 @@
+"feature","start","end","dominant","pvalue"
+"g__Escherichia-Shigella",2,4,"Ever",0.0405
+"g__Blautia",1,4,"Ever",0.016
+"g__[Clostridium]_innocuum_group",1,4,"Ever",0.021
+"g__.2",1,4,"Never",0.049
+"g__Ruminiclostridium_9",1,3,"Ever",0.018
+"g__Dorea",1,4,"Never",0.038
+"g__Negativibacillus",1,4,"Ever",0.009
+"g__Sellimonas",1,4,"Ever",0.0133333333333333
+"g__[Eubacterium]_xylanophilum_group",2,4,"Ever",0.03825
+"g__[Eubacterium]_brachy_group",1,4,"Ever",0.0106666666666667
+"g__Bacteroides",1,3,"Ever",0.00375
+"g__Eubacterium",1,4,"Ever",0.0156666666666667
+"g__DTU089",1,2,"Ever",0.03
+"g__Lachnospiraceae_ND3007_group",1,4,"Never",0.0268333333333333
