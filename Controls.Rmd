@@ -1,0 +1,107 @@
+---
+title: "Controls"
+author: "QD"
+output: html_document
+---
+##16S controls
+```{r}
+controls_16S<- subset_samples(genus_005_rel, Sample_type=="Control")
+pos_controls_16S<- subset_samples(controls_16S, Custom_ID!="NC-3") ## To only keep positive controls, as NC_3 only has 21 reads in total. Usual suspects are in the negative controls, with Delftia and Streptococcus being 8 and 5 reads respectively. Other 2 negative controls didn't seem to have any reads (but doublecheck later to be sure)
+toptaxa_pos_controls<-aggregate_top_taxa(pos_controls_16S,8,"Genus")
+controls<-toptaxa_pos_controls@otu_table@.Data
+pos_controls_df<-as.data.frame(controls)
+theoretical_values<-c(0.174,0.099,0.101,0.184,0.141,0.042,0.104,0.155,0)
+pos_controls_df$Theoretical<-theoretical_values
+pos_controls_df<-plyr::rename(pos_controls_df,c("103585-001-110"="DNA_Standard_2","103585-001-022"="Mock_Community_1","103585-001-058"="DNA_Standard_1","103585-001-108"="Mock_Community_3","103585-001-071"="Mock_Community_2"))
+
+pos_controls_df$Genus<-rownames(pos_controls_df)
+pos_controls_long<-melt(pos_controls_df,id.vars="Genus")
+levels(pos_controls_long$variable)
+pos_controls_long$variable<-factor(pos_controls_long$variable,levels=c("Theoretical","DNA_Standard_1","DNA_Standard_2","Mock_Community_1","Mock_Community_2","Mock_Community_3"))
+levels(pos_controls_long$variable)
+pos_controls_long$Genus<-gsub("g__","",pos_controls_long$Genus)
+pos_controls_long$Genus<-fct_relevel(pos_controls_long$Genus,"Other",after=Inf)
+
+pos_controls_16S<-ggplot(pos_controls_long)+
+  aes(x=variable,y=value,fill=Genus,color=Genus)+
+  scale_fill_brewer(palette="Paired")+
+  geom_bar(stat="identity",colour=NA)+
+  theme(legend.text=element_text(face="italic"))+
+  theme(axis.text.x = element_text(angle=45,hjust=1))+
+  xlab("Sample")+
+  ylab("Relative abundance")+
+  ggtitle("16S rRNA positive controls")
+
+##In mock community 3, only 1.27% is Staphylococcus, which is a 0.155/0.0127= ~12 fold decrease
+0.155/0.0127
+
+##Calculate average fold changes for DNA standards and mock communities (DNA extraction controls)
+dna_controls<-pos_controls_df[c(1:8),c(1,3,6)]
+dna_controls$fold_change_DNA_2<-dna_controls$DNA_Standard_2/dna_controls$Theoretical
+dna_controls$fold_change_DNA_1<-dna_controls$DNA_Standard_1/dna_controls$Theoretical ##Have to convert fold changes below 1 by 1/fold change below 0 to make everything comparable and calculate an average fold change
+dna_controls<-dna_controls[,c(4:5)]
+i1 <- dna_controls <1 ##index all values below 1
+dna_controls[i1] <- 1/dna_controls[i1] ##all TRUE values are converted by dividing 1/value
+(mean(dna_controls$fold_change_DNA_2)+mean(dna_controls$fold_change_DNA_1))/2
+##Now for the DNA extraction 
+extraction_controls<-pos_controls_df[c(1:8),c(2,4:6)]
+extraction_controls$Mock_Community_1_fold<-extraction_controls$Mock_Community_1/extraction_controls$Theoretical
+extraction_controls$Mock_Community_2_fold<-extraction_controls$Mock_Community_2/extraction_controls$Theoretical
+extraction_controls$Mock_Community_3_fold<-extraction_controls$Mock_Community_3/extraction_controls$Theoretical
+extraction_controls<-extraction_controls[,c(5:7)]
+i2 <- extraction_controls <1 ##index all values below 1
+extraction_controls[i2] <- 1/extraction_controls[i2] ##all TRUE values are converted by dividing 1/value
+(mean(extraction_controls$Mock_Community_1_fold)+mean(extraction_controls$Mock_Community_2_fold)+mean(extraction_controls$Mock_Community_3_fold))/3
+```
+
+##Positive controls metagenomes
+```{r}
+controls_metagenomes<- subset_samples(physeq_metagenomes_filtered, Sample_type=="Control")
+controls_metagenomes_top9<-phyloseq_filter_top_taxa(controls_metagenomes,n=9)
+controls_metag_df<-psmelt(controls_metagenomes_top9)
+controls_metag_df<-controls_metag_df[,-c(8:87)]
+##Again some renaming to have proper names for figure legend.
+controls_metag_df$species<-plyr::revalue(controls_metag_df$species,c("Lactobacillus fermentum/oris [Lactobacillus sp. HMSC24D01/Lactobacillus fermentum/Lactobacillus oris]"="Lactobacillus fermentum/oris","Staphylococcus aureus [Staphylococcus aureus/Staphylococcus sp. HMSC34D01/Staphylococcus sp. HMSC34H10/Staphylococcus sp. HMSC35D08/Staphylococcus sp. HMSC36A10/Staphylococcus sp. HMSC36C03/Staphylococcus sp. HMSC36D07/Staphylococcus sp. HMSC36D12/Staphylococcus sp. HMSC36F05/Staphylococcus sp. HMSC36G04/Staphylococcus sp. HMSC55F09/Staphylococcus sp. HMSC56B09/Staphylococcus sp. HMSC57A07/Staphylococcus sp. HMSC57B03/Staphylococcus sp. HMSC58A02/Staphylococcus sp. HMSC58E11/Staphylococcus sp. HMSC64F10/Staphylococcus sp. HMSC66A04/Staphylococcus sp. HMSC66C11/Staphylococcus sp. HMSC70F07/Staphylococcus sp. HMSC72E08/Staphylococcus sp. HMSC73A05/Staphylococcus sp. HMSC74D05/Staphylococcus sp. HMSC74F04/Staphylococcus sp. HMSC74G01/Staphylococcus sp. HMSC74G05/Staphylococcus sp. HMSC76G03/Staphylococcus sp. HMSC77A05/Staphylococcus sp. HMSC060D12/Staphylococcus sp. HMSC035F01/Staphylococcus sp. HMSC035F11/Staphylococcus sp. HMSC057B01/Staphylococcus sp. HMSC062H10/Staphylococcus sp. HMSC058E01/Staphylococcus sp. HMSC063H12/Staphylococcus sp. HMSC075C08/Staphylococcus sp. HMSC055H04/Staphylococcus sp. HMSC063G01/Staphylococcus sp. HMSC067F10/Staphylococcus sp. HMSC060D01/Staphylococcus sp. HMSC055H07/Staphylococcus sp. HMSC58B01]"="Staphylococcus aureus","Bacteria sp. [Streptococcus agalactiae/Enterococcus faecalis/Enterococcus faecium/Enterococcus sp. 255_ESPC/Enterococcus sp. 1140_ESPC/Listeria monocytogenes/Enterococcus sp. HMSC078F03/Enterococcus sp. HMSC073E09/Sphingobacterium faecium]"="Bacteria sp. (Enterococcus faecalis)","Pseudomonas sp. [Pseudomonas sp. P179/Pseudomonas sp. YS-1p/Pseudomonas sp. HMSC11A05/Pseudomonas sp. HMSC16B01/Pseudomonas sp. HMSC05H02/Pseudomonas sp. HMSC060G01/Pseudomonas sp. HMSC060F12/Pseudomonas sp. HMSC057H01/Pseudomonas sp. HMSC061A10/Pseudomonas sp. HMSC071F02/Pseudomonas sp. HMSC070B12/Pseudomonas sp. HMSC058B07/Pseudomonas sp. HMSC058C05/Pseudomonas sp. HMSC072F09/Pseudomonas sp. HMSC058A10/Pseudomonas sp. HMSC059F05/Pseudomonas sp. HMSC076A11/Pseudomonas sp. HMSC060G02/Pseudomonas sp. HMSC064G05/Pseudomonas sp. HMSC075A08/Pseudomonas sp. HMSC067D05/Pseudomonas sp. HMSC066B03/Pseudomonas sp. HMSC067F09/Pseudomonas sp. HMSC076A12/Pseudomonas sp. HMSC066A08/Pseudomonas sp. HMSC065H02/Pseudomonas sp. HMSC067G02/Pseudomonas sp. HMSC069G05/Pseudomonas sp. HMSC073F05/Pseudomonas sp. HMSC065H01/Pseudomonas aeruginosa/Pseudomonas putida/Pseudomonas otitidis/Pseudomonas denitrificans (nomen rejiciendum)]"="Pseudomonas sp","Proteobacteria sp. [Escherichia sp. KTE114/Escherichia sp. KTE11/Escherichia sp. KTE31/Escherichia sp. KTE52/Escherichia sp. KTE96/Escherichia sp. KTE159/Escherichia marmotae/Shigella sp. SF-2015/Achromobacter sp. ATCC35328/Shigella sp. PAMC 28760/Escherichia albertii/Komagataeibacter hansenii/Escherichia sp. 1_1_43/Escherichia sp. 4_1_40B/Escherichia coli/Escherichia fergusonii/Klebsiella oxytoca/Shigella boydii/Shigella dysenteriae/Shigella flexneri/Shigella sonnei/Escherichia sp. B1147/Escherichia sp. TW09308/Escherichia sp. TW11588]"="Proteobacteria sp. (Escherichia coli)","Bacteria sp. [Bacillus sp. JS/Micrococcus luteus/Streptococcus pneumoniae/Bacillus sp. CC120222-01/Bacillus sp. CMAA 1185/Bacillus licheniformis/Bacillus sp. (in: Bacteria)/Bacillus subtilis/Bacillus sp. YP1/Bacillus sp. F56/Bacillus sp. A053/Bacillus sp. LM 4-2/Bacillus sp. FJAT-27445/Bacillus murimartini/Bacillus sp. FJAT-14266/Bacillus sp. FMQ74/Bacillus intestinalis/Bacillus tequilensis/Bacillus gibsonii/Jeotgalibacillus marinus]"="Bacteria sp. (Bacillus subtilis)"))
+controls_metag_df$species<-as.character(controls_metag_df$species)
+controls_metag_df$species<- controls_metag_df$species %>% replace_na("Not_classified")
+controls_metag_df$Species<-paste(controls_metag_df$species,controls_metag_df$OTU,sep=" [")
+controls_metag_df$Species[-length(controls_metag_df$Species)] <- paste0(controls_metag_df$Species[-length(controls_metag_df$Species)], ']') ## For some reason 1 of the Not_classified doesn't get the extra ]
+controls_metag_df$Species<-plyr::revalue(controls_metag_df$Species,c("Not_classified [-1"="Not_classified [-1]"))
+controls_metag_df$Species<-fct_relevel(controls_metag_df$Species,"Not_classified [-1]",after=Inf) ##Have to copy 9 rows to make a theoretical expectation sample
+controls_metag_df_extra_rows<-subset(controls_metag_df,Custom_ID=="PC-1")
+controls_metag_df_extra_rows$Custom_ID<-plyr::revalue(controls_metag_df_extra_rows$Custom_ID,c("PC-1"="Theoretical"))
+controls_metag_df_extra_rows$Sample<-plyr::revalue(controls_metag_df_extra_rows$Sample,c("103997.001.011"="Not_applicable"))
+controls_metag_df_extra_rows$GS_ID<-plyr::revalue(controls_metag_df_extra_rows$GS_ID,c("103997.001.011"="Not_applicable"))
+#controls_metag_df_extra_rows$Abundance<-gsub("0.*","0.125",controls_metag_df_extra_rows$Abundance) ## But set -1 mOTU to 0 expected abundance. Expected theoretical abundances are on this product sheet. So not 0.125 for each bug!!!!
+#https://files.zymoresearch.com/protocols/_d6300_zymobiomics_microbial_community_standard.pdf in the genome copy column
+controls_metag_df_extra_rows[1,3]<-0.216 ## For L. fermentum
+controls_metag_df_extra_rows[2,3]<-0.139 ## For L.monocytogenes
+controls_metag_df_extra_rows[3,3]<-0.152 ## For S. aureus
+controls_metag_df_extra_rows[4,3]<-0.103 ## For B. subtilis
+controls_metag_df_extra_rows[5,3]<-0.087 ## For S. enterica
+controls_metag_df_extra_rows[6,3]<-0.146 ## For E. faecalis
+controls_metag_df_extra_rows[7,3]<-0.061 ## For Pseudomonas
+controls_metag_df_extra_rows[8,3]<-0.085 ## For E. coli
+controls_metag_df_extra_rows[9,3]<-0.0094## For unclassified (fungi)
+class(controls_metag_df_extra_rows$Abundance)<-"numeric"
+sum(controls_metag_df_extra_rows$Abundance)
+controls_metag_df_full<-dplyr::union(controls_metag_df,controls_metag_df_extra_rows)
+controls_metag_df_full$Custom_ID<-plyr::revalue(controls_metag_df_full$Custom_ID,c("PC-1"="Mock_Community_1","DNA standard"="DNA_Standard_3"))
+controls_metag_df_full$Custom_ID<-factor(controls_metag_df_full$Custom_ID,levels=c("Theoretical","DNA_Standard_3","Mock_Community_1"))
+controls_metag_df_full$Species<-factor(controls_metag_df_full$Species,levels=c("Bacteria sp. (Bacillus subtilis) [ref_mOTU_v25_00278]","Bacteria sp. (Enterococcus faecalis) [ref_mOTU_v25_00318]","Proteobacteria sp. (Escherichia coli) [ref_mOTU_v25_00095]","Lactobacillus fermentum/oris [ref_mOTU_v25_01407]","Listeria monocytogenes [ref_mOTU_v25_00712]","Pseudomonas sp [ref_mOTU_v25_00201]","Salmonella enterica/bongori [ref_mOTU_v25_00099]","Staphylococcus aureus [ref_mOTU_v25_00340]","Not_classified [-1]")) ##To present in the same order as in the 16S 
+
+pos_controls_metagenomes<-ggplot(controls_metag_df_full)+
+  aes(x=Custom_ID,y=Abundance,fill=Species,color=Species)+
+  geom_bar(stat="identity",colour=NA)+
+  scale_fill_brewer(palette="Paired")+
+  theme(legend.text=element_text(face="italic"))+
+  theme(axis.text.x = element_text(angle=45,hjust=1))+
+  xlab("Sample")+
+  ylab("Relative abundance")+
+  ggtitle("Metagenome positive controls")
+
+positive_controls<-ggarrange(pos_controls_16S,pos_controls_metagenomes,labels=c("A","B",ncol=1,nrow=2))
+ggsave(file="FigS1_Pos_Controls.svg", plot=positive_controls, width=12, height=6,dpi=1600)
+```
+
+
